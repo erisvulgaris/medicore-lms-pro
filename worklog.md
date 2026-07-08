@@ -413,3 +413,40 @@ Stage Summary:
 - The app now has 21 views, 31 API routes covering: dashboard, lab analytics (TAT + sample aging), finance reports (daily collection, GST, outstanding aging, P&L, day closing), patients, appointments, orders, samples, results, reports, tests, invoices, inventory, purchases, doctors, audit, settings, verify.
 - Known environment limitation persists: 4GB sandbox OOMs if 2+ heavy recharts views are compiled in quick succession in one server session. Mitigated by lazy imports; one-view-per-fresh-session QA works reliably.
 - Next-round candidates: lab machine integration adapters (ASTM/HL7), home collection route planning, doctor commission reports, more report templates, barcode label printing, patient/doctor portals.
+
+---
+Task ID: 5
+Agent: main (Z.ai Code) — recurring webDevReview round
+Task: Assess project status, QA via agent-browser, add new features (doctor commission reports, home collection route planning, barcode label printing), improve styling.
+
+Work Log:
+- Reviewed worklog (Task ID 4): project had 21 views, 31 APIs, lint clean. Last round added analytics + finance + CSV export.
+- QA assessment: restarted server, all 6 core APIs returned 200 (dashboard, analytics/tat, analytics/finance, patients, orders, doctors). Inspected doctor data: 5 doctors (2 with commission enabled — Dr. Sanjay Gupta 10%, Dr. Ramesh Patil 5%), 32 orders linked to doctors with payable amounts. No bugs in existing code.
+
+- Built 3 new features (2 new API routes + 3 new views):
+
+  1. Doctor Commission Reports (src/app/api/analytics/commissions/route.ts + src/components/views/commissions-view.tsx):
+     - API: computes per-doctor referral count, total billed, collected, pending collection, commission earned (on collected amount × rate, only if commissionEnabled), commission paid/due. Range selector (30/90/180/365 days). Includes compliance note.
+     - View: amber Compliance Notice banner (full legal text), 4 stat cards (Active Referrers, Total Referrals, Commission Earned, Commission Due), 2 bar charts (Referrals by Doctor, Billed vs Commission), doctor-wise breakdown table with avatars + specialization + rate badges + pending collection + commission due, totals row, Top Referrers highlight cards (gold border for #1). CSV export (11 columns).
+     - Verified: 5 doctors, 32 referrals, ₹17,706 billed, ₹493 commission earned. Dr. Sanjay Gupta earned ₹386.
+
+  2. Home Collection Route Planning (src/app/api/home-collection/route.ts + src/components/views/home-collection-view.tsx):
+     - API: aggregates home-collection appointments + isHomeCollection orders, groups by area (derived from patient city/address), computes per-route counts (pending/collected/cancelled) + total amount. PATCH endpoint to mark collected (advances order to COLLECTED + sample to RECEIVED) or cancel.
+     - View: 4 stat cards (Total Requests, Pending, Collected, Areas/Routes), 2 tabs (Route Planning / All Requests). Route Planning tab: per-area cards with MapPin icon, area name, request count + total amount, pending/done/cancelled badges, numbered stop list per route with patient name/code/phone/address/scheduled time + Collected/Cancel action buttons. All Requests tab: flat scrollable list. Gated by orders.write for actions.
+     - Verified: 4 requests, 4 pending, 1 area (Bengaluru).
+
+  3. Barcode Label Printing (src/components/views/barcodes-view.tsx):
+     - View: search samples by barcode/code/patient, checkbox selection (up to 24), Select All / Clear / Print buttons. Print triggers window.print() with print CSS. BarcodeVisual component renders deterministic vertical-bar barcode from the barcode string (char-code-based bar widths). LabelPreview cards (screen) + LabelSheet (print, 3-column grid) with org name, barcode visual, patient name/code, sample type, date, barcode text. Uses existing /api/samples endpoint.
+     - Verified: 32 samples listed with barcodes (BC50323exe), sample codes (S-5032), patient names, types, statuses. Selectable + printable.
+
+- Updated nav (src/lib/nav.ts): added Home Collection (Clinical, orders.read), Barcode Labels (Laboratory, samples.read), Commission Reports (Directory, doctors.read). Total nav items: 19.
+- Updated page.tsx router: 3 new lazy-loaded views wired in. Total: 24 views, 33 API routes.
+- agent-browser QA verified all 3 new views render with real data (Commission Reports with compliance notice + charts + table; Home Collection with route cards + stat cards; Barcode Labels with sample list + checkboxes + print button). Navigation via direct button.click() eval (agent-browser's find/click didn't reliably trigger React onClick on sidebar buttons in this sandbox).
+- `bun run lint` → 0 errors, 0 warnings (clean).
+- Dev server runs on port 3000 (HTTP 200). Memory ~974MB with lazy views.
+
+Stage Summary:
+- Added 3 new feature views + 2 new API routes. Lint clean. All new APIs verified 200 with real data; all 3 new views verified rendering in browser.
+- The app now has 24 views, 33 API routes covering: dashboard, lab analytics (TAT + sample aging), finance reports (daily collection, GST, outstanding, P&L, day closing), commission reports (referrals + commission), home collection (route planning), barcode labels (printing), patients, appointments, orders, samples, results, reports, tests, invoices, inventory, purchases, doctors, audit, settings, verify.
+- Known environment limitation persists: 4GB sandbox OOMs if 2+ heavy recharts views compiled in one session. Mitigated by lazy imports + one-view-per-fresh-session QA.
+- Next-round candidates: lab machine integration adapters (ASTM/HL7), patient/doctor portals, more report templates, machine utilization analytics, technician productivity reports.

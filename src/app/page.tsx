@@ -10,6 +10,9 @@ import { AppShell } from "@/components/app-shell"
 const DashboardView = dynamic(() => import("@/components/views/dashboard-view").then(m => ({ default: m.DashboardView })), { ssr: false })
 const AnalyticsView = dynamic(() => import("@/components/views/analytics-view").then(m => ({ default: m.AnalyticsView })), { ssr: false })
 const FinanceView = dynamic(() => import("@/components/views/finance-view").then(m => ({ default: m.FinanceView })), { ssr: false })
+const CommissionsView = dynamic(() => import("@/components/views/commissions-view").then(m => ({ default: m.CommissionsView })), { ssr: false })
+const HomeCollectionView = dynamic(() => import("@/components/views/home-collection-view").then(m => ({ default: m.HomeCollectionView })), { ssr: false })
+const BarcodesView = dynamic(() => import("@/components/views/barcodes-view").then(m => ({ default: m.BarcodesView })), { ssr: false })
 const PatientsView = dynamic(() => import("@/components/views/patients-view").then(m => ({ default: m.PatientsView })), { ssr: false })
 const PatientDetail = dynamic(() => import("@/components/views/patient-detail").then(m => ({ default: m.PatientDetail })), { ssr: false })
 const TestsView = dynamic(() => import("@/components/views/tests-view").then(m => ({ default: m.TestsView })), { ssr: false })
@@ -72,6 +75,9 @@ function ViewRouter({ view }: { view: string }) {
     case "dashboard": return <DashboardView />
     case "analytics": return <AnalyticsView />
     case "finance": return <FinanceView />
+    case "commissions": return <CommissionsView />
+    case "home-collection": return <HomeCollectionView />
+    case "barcodes": return <BarcodesView />
     case "patients": return <PatientsView />
     case "patient-detail": return <PatientDetail />
     case "tests": return <TestsView />
