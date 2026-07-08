@@ -193,6 +193,47 @@ export function DashboardView() {
         </Card>
       </div>
 
+      {/* TAT compliance + sample aging widget */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="flex flex-col items-center justify-center p-5 text-center">
+          <h3 className="mb-1 self-start font-semibold">TAT Compliance</h3>
+          <p className="mb-3 self-start text-xs text-muted-foreground">last 30 days</p>
+          <MiniGauge value={s.tatCompliance ?? 0} />
+          <p className="mt-2 text-xs text-muted-foreground">{s.tatCompliant ?? 0} of {s.tatMeasured ?? 0} on time</p>
+          <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => navigate("analytics")}>Details <ArrowRight className="ml-1 h-3 w-3" /></Button>
+        </Card>
+
+        <Card className="p-5 lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">Sample Aging</h3>
+              <p className="text-sm text-muted-foreground">{data.sampleAging?.total ?? 0} active samples · {s.overdueSamples ?? 0} overdue</p>
+            </div>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("analytics")}>View analytics <ArrowRight className="ml-1 h-3 w-3" /></Button>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: "< 4h", value: data.sampleAging?.buckets.fresh ?? 0, color: "#10b981" },
+              { label: "4–8h", value: data.sampleAging?.buckets.aging ?? 0, color: "#3b82f6" },
+              { label: "8–24h", value: data.sampleAging?.buckets.stale ?? 0, color: "#f59e0b" },
+              { label: "> 24h", value: data.sampleAging?.buckets.critical ?? 0, color: "#ef4444" },
+            ].map((b) => (
+              <div key={b.label} className="rounded-lg border p-3 text-center">
+                <div className="mx-auto mb-1.5 h-1.5 w-full rounded-full" style={{ background: b.color }} />
+                <p className="text-2xl font-bold" style={{ color: b.color }}>{b.value}</p>
+                <p className="text-[11px] text-muted-foreground">{b.label}</p>
+              </div>
+            ))}
+          </div>
+          {(s.overdueSamples ?? 0) > 0 && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span><strong>{s.overdueSamples}</strong> sample(s) have exceeded their expected TAT and require immediate attention.</span>
+            </div>
+          )}
+        </Card>
+      </div>
+
       {/* Recent activity */}
       <SectionCard title="Activity Feed" description="Latest actions across the laboratory">
         <ScrollArea className="max-h-72">
@@ -230,6 +271,25 @@ function DashboardSkeleton() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="h-80 animate-pulse rounded-xl bg-muted lg:col-span-2" />
         <div className="h-80 animate-pulse rounded-xl bg-muted" />
+      </div>
+    </div>
+  )
+}
+
+function MiniGauge({ value }: { value: number }) {
+  const radius = 52
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (value / 100) * circumference * 0.75
+  const color = value >= 80 ? "#10b981" : value >= 60 ? "#f59e0b" : "#ef4444"
+  return (
+    <div className="relative flex h-32 w-32 items-center justify-center">
+      <svg className="h-32 w-32 -rotate-[135deg]" viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth="9" strokeDasharray={`${circumference * 0.75} ${circumference}`} strokeLinecap="round" />
+        <circle cx="64" cy="64" r={radius} fill="none" stroke={color} strokeWidth="9" strokeDasharray={`${circumference * 0.75} ${circumference}`} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-2xl font-bold" style={{ color }}>{value}%</span>
+        <span className="text-[10px] text-muted-foreground">on time</span>
       </div>
     </div>
   )

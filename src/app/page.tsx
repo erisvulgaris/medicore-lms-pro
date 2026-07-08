@@ -8,6 +8,8 @@ import { AppShell } from "@/components/app-shell"
 // Lazy-load views so Turbopack compiles them on-demand (one at a time),
 // drastically reducing peak memory during the initial compile.
 const DashboardView = dynamic(() => import("@/components/views/dashboard-view").then(m => ({ default: m.DashboardView })), { ssr: false })
+const AnalyticsView = dynamic(() => import("@/components/views/analytics-view").then(m => ({ default: m.AnalyticsView })), { ssr: false })
+const FinanceView = dynamic(() => import("@/components/views/finance-view").then(m => ({ default: m.FinanceView })), { ssr: false })
 const PatientsView = dynamic(() => import("@/components/views/patients-view").then(m => ({ default: m.PatientsView })), { ssr: false })
 const PatientDetail = dynamic(() => import("@/components/views/patient-detail").then(m => ({ default: m.PatientDetail })), { ssr: false })
 const TestsView = dynamic(() => import("@/components/views/tests-view").then(m => ({ default: m.TestsView })), { ssr: false })
@@ -68,6 +70,8 @@ export default function Home() {
 function ViewRouter({ view }: { view: string }) {
   switch (view) {
     case "dashboard": return <DashboardView />
+    case "analytics": return <AnalyticsView />
+    case "finance": return <FinanceView />
     case "patients": return <PatientsView />
     case "patient-detail": return <PatientDetail />
     case "tests": return <TestsView />

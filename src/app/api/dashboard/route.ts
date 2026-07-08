@@ -117,6 +117,49 @@ export async function GET(req: NextRequest) {
     const revPrev = revenuePrevMonth._sum.amount ?? 0
     const revenueChange = revPrev > 0 ? ((revThis - revPrev) / revPrev) * 100 : revThis > 0 ? 100 : 0
 
+    // ── TAT compliance widget (last 30 days, completed+ orders) ──
+    const tatOrders = await db.testOrder.findMany({
+      where: {
+        organizationId: orgId,
+        status: { in: ["COMPLETED", "VERIFIED", "APPROVED", "DELIVERED"] },
+        createdAt: { gte: new Date(Date.now() - 30 * 86400000) },
+      },
+      include: {
+        orderTests: { include: { test: { select: { tatHours: true } } } },
+        report: { select: { approvedAt: true } },
+      },
+      take: 300,
+    })
+    let tatMeasured = 0
+    let tatCompliant = 0
+    for (const o of tatOrders) {
+      if (!o.report?.approvedAt) continue
+      const expected = Math.max(...o.orderTests.map((ot) => ot.test.tatHours || 24), 24)
+      const actual = (o.report.approvedAt.getTime() - o.createdAt.getTime()) / 3600000
+      tatMeasured++
+      if (actual <= expected) tatCompliant++
+    }
+    const tatCompliance = tatMeasured ? Math.round((tatCompliant / tatMeasured) * 100) : 0
+
+    // ── Overdue active samples (age > expected TAT) ──
+    const activeSamples = await db.sample.findMany({
+      where: { organizationId: orgId, status: { in: ["COLLECTED", "RECEIVED", "PROCESSING"] } },
+      include: { order: { include: { orderTests: { include: { test: { select: { tatHours: true } } } } } } },
+      take: 200,
+    })
+    const agingNow = new Date()
+    let overdueSamples = 0
+    const agingBuckets = { fresh: 0, aging: 0, stale: 0, critical: 0 }
+    for (const s of activeSamples) {
+      const ageHours = (agingNow.getTime() - s.collectedAt.getTime()) / 3600000
+      const expected = Math.max(...s.order.orderTests.map((ot) => ot.test.tatHours || 24), 24)
+      if (ageHours > expected) overdueSamples++
+      if (ageHours < 4) agingBuckets.fresh++
+      else if (ageHours < 8) agingBuckets.aging++
+      else if (ageHours < 24) agingBuckets.stale++
+      else agingBuckets.critical++
+    }
+
     return Response.json({
       canViewFinance: hasPermission(user.role, "finance.view"),
       stats: {
@@ -135,7 +178,12 @@ export async function GET(req: NextRequest) {
         outstanding: outstandingAmount._sum.balanceDue ?? 0,
         lowStockItems,
         totalInvoices,
+        tatCompliance,
+        tatMeasured,
+        tatCompliant,
+        overdueSamples,
       },
+      sampleAging: { total: activeSamples.length, buckets: agingBuckets },
       trend: days,
       statusDistribution: statusCounts.map((s) => ({ status: s.status, count: s._count })),
       topTests,

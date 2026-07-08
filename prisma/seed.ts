@@ -287,8 +287,8 @@ async function main() {
           // generate a value, sometimes abnormal/critical
           const r = Math.random()
           let v: number
-          if (r < 0.08 && range.criticalLow != null) v = range.criticalLow - 1
-          else if (r < 0.16 && range.criticalHigh != null) v = range.criticalHigh + 1
+          if (r < 0.08 && range.criticalLow != null) v = Math.max(0, range.criticalLow - Math.max(0.5, (range.high - range.low) * 0.15))
+          else if (r < 0.16 && range.criticalHigh != null) v = range.criticalHigh + Math.max(1, (range.high - range.low) * 0.15)
           else if (r < 0.3) v = range.low - (range.high - range.low) * 0.2
           else if (r < 0.42) v = range.high + (range.high - range.low) * 0.2
           else v = range.low + Math.random() * (range.high - range.low)

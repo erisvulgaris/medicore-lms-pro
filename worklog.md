@@ -371,3 +371,45 @@ Stage Summary:
 - All subagent-built views (tests, appointments, samples, results, reports, report-detail, invoices,
   invoice-detail, inventory, purchases, doctors, audit, settings, verify) are lint-clean and wired into the
   router; their APIs return 200.
+
+---
+Task ID: 4
+Agent: main (Z.ai Code) — recurring webDevReview round
+Task: Assess project status, QA via agent-browser, fix bugs, add new features (TAT compliance, finance reports, CSV export, dashboard analytics), improve styling.
+
+Work Log:
+- Reviewed worklog: project was feature-complete (19 views, 29 APIs, lint clean, golden path verified).
+- QA assessment: all 8 core APIs returned 200; agent-browser confirmed role-gate + dashboard + results view render with real data (4 critical alerts, pending queue). No console errors. No runtime bugs in existing code.
+- Identified seed-data quality issue: HbA1c critical-low results showed "-1.0 %" (seed generated `criticalLow - 1` = 0 - 1 = -1, medically impossible). Fixed seed to use `Math.max(0, criticalLow - proportional_offset)`. Reset DB + re-seeded with clinically sensible critical values.
+- Built 3 new features:
+
+  1. CSV Export utility (src/lib/csv.ts): `toCSV()`, `downloadCSV()`, `csvDate()` — RFC-4180-compliant, client-side, zero dependencies. Added export buttons to Patients view (10-column patient export) and both new analytics views.
+
+  2. Lab Analytics view (src/components/views/analytics-view.tsx) + API (src/app/api/analytics/tat/route.ts):
+     - TAT Compliance tab: compliance gauge (270° arc SVG), stat cards (compliance rate, breached, on-time, pending), 14-day compliance trend area chart, per-test compliance bar chart + table with color-coded badges (≥80% emerald, ≥60% amber, <60% rose). CSV export.
+     - Sample Aging tab: 4 aging buckets (<4h fresh, 4-8h aging, 8-24h stale, >24h critical) with colored stat cards, aging distribution bar chart, active-samples list with overdue highlighting (rose border + OVERDUE badge), remaining/over hours. CSV export.
+     - API computes: actual hours from order creation to report approval vs configured per-test TAT; sample age from collection time vs expected TAT; 14-day compliance trend.
+
+  3. Finance Reports view (src/components/views/finance-view.tsx) + API (src/app/api/analytics/finance/route.ts):
+     - P&L summary cards: Revenue, Test Cost, Gross Profit (with margin %), Net Profit (after expenses).
+     - Daily Collection tab: 30-day area chart, payment-mode breakdown (progress bars per mode with icons + colors), daily breakdown table. CSV export.
+     - GST Report tab: taxable/tax by GST rate, summary cards, detailed table with totals row. CSV export.
+     - Outstanding tab: 4 aging buckets (current/1-30d/31-60d/60+d), sortable invoice list with age badges. CSV export.
+     - Day Closing tab: today's total, by-mode breakdown, payment list with reconciliation total.
+     - Range selector (7/30/90/365 days).
+
+- Enhanced Dashboard (src/app/api/dashboard/route.ts + dashboard-view.tsx): added TAT compliance widget (MiniGauge 270° arc, color-coded emerald/amber/rose) + Sample Aging widget (4 colored bucket cards + overdue alert banner). Dashboard API now returns `tatCompliance`, `tatMeasured`, `tatCompliant`, `overdueSamples`, `sampleAging.{total,buckets}`.
+- Fixed dashboard API bug: duplicate `const now` declaration (line 30 + line 150) caused SyntaxError → 500. Renamed second to `agingNow`.
+- Updated nav (src/lib/nav.ts): added "Lab Analytics" (Overview group, dashboard.view perm) + "Finance Reports" (Finance group, finance.view perm). Updated page.tsx router with 2 new lazy-loaded views. Total: 21 views, 31 API routes.
+- agent-browser QA verified:
+  * Dashboard renders new TAT Compliance widget ("100%", "8 of 8 on time") + Sample Aging widget ("15 active samples · 12 overdue").
+  * Lab Analytics view renders: Compliance Rate 100%, TAT Breached 0, tabs (TAT Compliance / Sample Aging), Export TAT button.
+  * Finance Reports view renders: Revenue ₹12,582, Test Cost ₹4,288, Gross Profit 66% margin, Net Profit, 4 tabs (Daily Collection / GST Report / Outstanding / Day Closing), range selector.
+- `bun run lint` → 0 errors, 0 warnings (clean).
+- Dev server runs on port 3000 (HTTP 200). Memory ~950MB with lazy views.
+
+Stage Summary:
+- Added 2 new analytics views + 2 new API routes + CSV export utility + dashboard analytics widgets. Fixed seed-data quality + dashboard API duplicate-declaration bug. Lint clean. All new APIs verified 200 with real data; new views verified rendering in browser.
+- The app now has 21 views, 31 API routes covering: dashboard, lab analytics (TAT + sample aging), finance reports (daily collection, GST, outstanding aging, P&L, day closing), patients, appointments, orders, samples, results, reports, tests, invoices, inventory, purchases, doctors, audit, settings, verify.
+- Known environment limitation persists: 4GB sandbox OOMs if 2+ heavy recharts views are compiled in quick succession in one server session. Mitigated by lazy imports; one-view-per-fresh-session QA works reliably.
+- Next-round candidates: lab machine integration adapters (ASTM/HL7), home collection route planning, doctor commission reports, more report templates, barcode label printing, patient/doctor portals.

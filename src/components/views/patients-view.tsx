@@ -14,9 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Users, Search, Plus, Phone, MapPin, Building2, UserPlus, Loader2 } from "lucide-react"
+import { Users, Search, Plus, Phone, MapPin, Building2, UserPlus, Loader2, Download } from "lucide-react"
 import { initials, formatDate, calcAge } from "@/lib/format"
 import { GENDERS, BLOOD_GROUPS } from "@/lib/constants"
+import { downloadCSV } from "@/lib/csv"
 import { toast } from "sonner"
 
 export function PatientsView() {
@@ -35,9 +36,28 @@ export function PatientsView() {
         title="Patients"
         subtitle={`${data?.total ?? 0} registered patients`}
         actions={
-          can("patients.write") && (
-            <CreatePatientDialog open={createOpen} onOpenChange={setCreateOpen} />
-          )
+          <div className="flex items-center gap-2">
+            {data && data.patients.length > 0 && (
+              <Button variant="outline" onClick={() => {
+                downloadCSV(`patients-${new Date().toISOString().slice(0, 10)}`, data.patients, [
+                  { key: "patientCode", label: "Patient Code" },
+                  { key: "firstName", label: "First Name" },
+                  { key: "lastName", label: "Last Name" },
+                  { key: "gender", label: "Gender" },
+                  { key: "age", label: "Age" },
+                  { key: "phone", label: "Phone" },
+                  { key: "email", label: "Email" },
+                  { key: "bloodGroup", label: "Blood Group" },
+                  { key: "city", label: "City" },
+                  { key: "isCorporate", label: "Corporate" },
+                ])
+                toast.success("Patients exported to CSV")
+              }}><Download className="mr-2 h-4 w-4" /> Export</Button>
+            )}
+            {can("patients.write") && (
+              <CreatePatientDialog open={createOpen} onOpenChange={setCreateOpen} />
+            )}
+          </div>
         }
       />
 
