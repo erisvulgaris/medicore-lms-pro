@@ -1,0 +1,31 @@
+import type { Permission } from "@/lib/permissions"
+import {
+  LayoutDashboard, Users, FlaskConical, CalendarClock, ClipboardList, TestTube2,
+  Microscope, FileText, Receipt, Package, ShoppingCart, Stethoscope, Settings,
+  ScrollText, Bell, type LucideIcon,
+} from "lucide-react"
+
+export interface NavItem {
+  key: string
+  label: string
+  icon: LucideIcon
+  permission: Permission
+  group: string
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view", group: "Overview" },
+  { key: "patients", label: "Patients", icon: Users, permission: "patients.read", group: "Clinical" },
+  { key: "appointments", label: "Appointments", icon: CalendarClock, permission: "appointments.read", group: "Clinical" },
+  { key: "orders", label: "Test Orders", icon: ClipboardList, permission: "orders.read", group: "Clinical" },
+  { key: "samples", label: "Sample Collection", icon: TestTube2, permission: "samples.read", group: "Laboratory" },
+  { key: "results", label: "Result Entry", icon: Microscope, permission: "results.read", group: "Laboratory" },
+  { key: "reports", label: "Reports", icon: FileText, permission: "reports.read", group: "Laboratory" },
+  { key: "tests", label: "Test Catalog", icon: FlaskConical, permission: "tests.read", group: "Laboratory" },
+  { key: "invoices", label: "Billing & Invoices", icon: Receipt, permission: "invoices.read", group: "Finance" },
+  { key: "inventory", label: "Inventory", icon: Package, permission: "inventory.read", group: "Inventory" },
+  { key: "purchases", label: "Purchase Orders", icon: ShoppingCart, permission: "purchases.read", group: "Inventory" },
+  { key: "doctors", label: "Referring Doctors", icon: Stethoscope, permission: "doctors.read", group: "Directory" },
+  { key: "audit", label: "Audit Log", icon: ScrollText, permission: "audit.view", group: "System" },
+  { key: "settings", label: "Settings", icon: Settings, permission: "settings.manage", group: "System" },
+]

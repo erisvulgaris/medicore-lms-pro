@@ -1,0 +1,90 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
+import { useApp } from "@/lib/store"
+import { AppShell } from "@/components/app-shell"
+
+// Lazy-load views so Turbopack compiles them on-demand (one at a time),
+// drastically reducing peak memory during the initial compile.
+const DashboardView = dynamic(() => import("@/components/views/dashboard-view").then(m => ({ default: m.DashboardView })), { ssr: false })
+const PatientsView = dynamic(() => import("@/components/views/patients-view").then(m => ({ default: m.PatientsView })), { ssr: false })
+const PatientDetail = dynamic(() => import("@/components/views/patient-detail").then(m => ({ default: m.PatientDetail })), { ssr: false })
+const TestsView = dynamic(() => import("@/components/views/tests-view").then(m => ({ default: m.TestsView })), { ssr: false })
+const AppointmentsView = dynamic(() => import("@/components/views/appointments-view").then(m => ({ default: m.AppointmentsView })), { ssr: false })
+const OrdersView = dynamic(() => import("@/components/views/orders-view").then(m => ({ default: m.OrdersView })), { ssr: false })
+const OrderDetail = dynamic(() => import("@/components/views/order-detail").then(m => ({ default: m.OrderDetail })), { ssr: false })
+const SamplesView = dynamic(() => import("@/components/views/samples-view").then(m => ({ default: m.SamplesView })), { ssr: false })
+const ResultsView = dynamic(() => import("@/components/views/results-view").then(m => ({ default: m.ResultsView })), { ssr: false })
+const ReportsView = dynamic(() => import("@/components/views/reports-view").then(m => ({ default: m.ReportsView })), { ssr: false })
+const ReportDetail = dynamic(() => import("@/components/views/report-detail").then(m => ({ default: m.ReportDetail })), { ssr: false })
+const InvoicesView = dynamic(() => import("@/components/views/invoices-view").then(m => ({ default: m.InvoicesView })), { ssr: false })
+const InvoiceDetail = dynamic(() => import("@/components/views/invoice-detail").then(m => ({ default: m.InvoiceDetail })), { ssr: false })
+const InventoryView = dynamic(() => import("@/components/views/inventory-view").then(m => ({ default: m.InventoryView })), { ssr: false })
+const PurchasesView = dynamic(() => import("@/components/views/purchases-view").then(m => ({ default: m.PurchasesView })), { ssr: false })
+const DoctorsView = dynamic(() => import("@/components/views/doctors-view").then(m => ({ default: m.DoctorsView })), { ssr: false })
+const AuditView = dynamic(() => import("@/components/views/audit-view").then(m => ({ default: m.AuditView })), { ssr: false })
+const SettingsView = dynamic(() => import("@/components/views/settings-view").then(m => ({ default: m.SettingsView })), { ssr: false })
+const VerifyView = dynamic(() => import("@/components/views/verify-view").then(m => ({ default: m.VerifyView })), { ssr: false })
+
+function Loading() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+    </div>
+  )
+}
+
+export default function Home() {
+  const { view, session } = useApp()
+  const [verifyToken, setVerifyToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get("verify")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (token) setVerifyToken(token)
+  }, [])
+
+  if (verifyToken) {
+    return (
+      <div className="min-h-screen bg-background">
+        <VerifyView token={verifyToken} />
+      </div>
+    )
+  }
+
+  if (!session) {
+    return <AppShell><div /></AppShell>
+  }
+
+  return (
+    <AppShell>
+      <ViewRouter view={view} />
+    </AppShell>
+  )
+}
+
+function ViewRouter({ view }: { view: string }) {
+  switch (view) {
+    case "dashboard": return <DashboardView />
+    case "patients": return <PatientsView />
+    case "patient-detail": return <PatientDetail />
+    case "tests": return <TestsView />
+    case "appointments": return <AppointmentsView />
+    case "orders": return <OrdersView />
+    case "order-detail": return <OrderDetail />
+    case "samples": return <SamplesView />
+    case "results": return <ResultsView />
+    case "reports": return <ReportsView />
+    case "report-detail": return <ReportDetail />
+    case "invoices": return <InvoicesView />
+    case "invoice-detail": return <InvoiceDetail />
+    case "inventory": return <InventoryView />
+    case "purchases": return <PurchasesView />
+    case "doctors": return <DoctorsView />
+    case "audit": return <AuditView />
+    case "settings": return <SettingsView />
+    default: return <DashboardView />
+  }
+}

@@ -1,0 +1,709 @@
+// Pathology Laboratory Management System (LMS)
+// Multi-tenant schema. PostgreSQL-ready: avoid SQLite-specific SQL in queries.
+// All tenant-owned tables carry `organizationId` (and `branchId` where relevant).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-tenancy
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  legalName   String?
+  code        String   @unique
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  postalCode  String?
+  gstin       String?
+  website     String?
+  logoUrl     String?
+  accentColor String   @default("emerald")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branches    Branch[]
+  users       User[]
+  patients    Patient[]
+  doctors     Doctor[]
+  categories  TestCategory[]
+  tests       Test[]
+  profiles    TestProfile[]
+  panels      TestPanel[]
+  packages    TestPackage[]
+  appointments Appointment[]
+  orders      TestOrder[]
+  samples     Sample[]
+  reports     Report[]
+  invoices    Invoice[]
+  suppliers   Supplier[]
+  inventory   InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+  auditLogs   AuditLog[]
+  notifications Notification[]
+  settings    Setting[]
+}
+
+model Branch {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  address        String?
+  city           String?
+  state          String?
+  phone          String?
+  email          String?
+  isHeadOffice   Boolean  @default(false)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+  patients       Patient[]
+  appointments   Appointment[]
+  orders         TestOrder[]
+  invoices       Invoice[]
+  inventory      InventoryItem[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth & RBAC
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String?
+  email          String
+  name           String
+  passwordHash   String
+  role           String   @default("RECEPTIONIST") // SUPER_ADMIN, ORG_OWNER, BRANCH_ADMIN, RECEPTIONIST, LAB_TECHNICIAN, PATHOLOGIST, DOCTOR, PHLEBOTOMIST, CASHIER, ACCOUNTANT
+  phone          String?
+  avatarUrl      String?
+  active         Boolean  @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  ordersCreated  TestOrder[]  @relation("OrderCreatedBy")
+  ordersApproved TestOrder[]  @relation("OrderApprovedBy")
+  samplesCollected Sample[]
+  resultsEntered Result[]  @relation("ResultEnteredBy")
+  resultsApproved Result[] @relation("ResultApprovedBy")
+  reportsApproved Report[]
+  paymentsReceived Payment[]
+  auditLogs      AuditLog[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patients & Doctors
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Patient {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String?
+  patientCode    String
+  firstName      String
+  lastName       String
+  dob            DateTime?
+  age            Int?
+  gender         String? // Male, Female, Other
+  phone          String?
+  email          String?
+  address        String?
+  city           String?
+  state          String?
+  bloodGroup     String?
+  emergencyContact String?
+  medicalHistory String?
+  allergies      String?
+  gstin          String?
+  isCorporate    Boolean  @default(false)
+  corporateName  String?
+  insuranceProvider String?
+  insuranceId    String?
+  photoUrl       String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  appointments   Appointment[]
+  orders         TestOrder[]
+  invoices       Invoice[]
+
+  @@unique([organizationId, patientCode])
+  @@index([organizationId, phone])
+  @@index([organizationId, lastName])
+}
+
+model Doctor {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String?
+  specialization String?
+  qualifications String?
+  phone          String?
+  email          String?
+  clinicName     String?
+  clinicAddress  String?
+  commissionRate Float    @default(0) // percentage; off by default. Compliance: enable only where lawful.
+  commissionEnabled Boolean @default(false)
+  referralCount  Int      @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  orders         TestOrder[]
+
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test catalog
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TestCategory {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tests          Test[]
+
+  @@unique([organizationId, name])
+}
+
+model Test {
+  id             String   @id @default(cuid())
+  organizationId String
+  categoryId     String?
+  name           String
+  code           String
+  shortName      String?
+  description    String?
+  // specimen
+  sampleType     String? // e.g. Serum, Plasma, Whole Blood, Urine
+  tubeType       String? // e.g. SST, EDTA, Citrate
+  volume         String? // e.g. 3 mL
+  // clinical
+  unit           String?
+  method         String?
+  department     String? // Biochemistry, Hematology, Microbiology, etc.
+  machineName    String?
+  // ranges stored as JSON string: [{ gender, minAge, maxAge, low, high, criticalLow, criticalHigh }]
+  referenceRanges String?
+  tatHours       Int      @default(24)
+  instructions   String?
+  // pricing
+  price          Float
+  cost           Float    @default(0)
+  gstRate        Float    @default(0)
+  isPanel        Boolean  @default(false)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       TestCategory? @relation(fields: [categoryId], references: [id])
+  profileItems   TestProfileItem[]
+  panelItems     TestPanelItem[]
+  packageItems   TestPackageItem[]
+  orderTests     OrderTest[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model TestProfile {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  description    String?
+  price          Float
+  gstRate        Float    @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items          TestProfileItem[]
+
+  @@unique([organizationId, code])
+}
+
+model TestProfileItem {
+  id          String @id @default(cuid())
+  profileId   String
+  testId      String
+  profile     TestProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  test        Test        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  @@index([profileId])
+}
+
+model TestPanel {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  description    String?
+  price          Float
+  gstRate        Float    @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items          TestPanelItem[]
+
+  @@unique([organizationId, code])
+}
+
+model TestPanelItem {
+  id          String @id @default(cuid())
+  panelId     String
+  testId      String
+  panel       TestPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  test        Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  @@index([panelId])
+}
+
+model TestPackage {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  description    String?
+  price          Float
+  mrp            Float    @default(0)
+  gstRate        Float    @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items          TestPackageItem[]
+
+  @@unique([organizationId, code])
+}
+
+model TestPackageItem {
+  id          String @id @default(cuid())
+  packageId   String
+  testId      String
+  package     TestPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  test        Test        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  @@index([packageId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Appointments
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Appointment {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String?
+  patientId      String
+  doctorId       String?
+  appointmentDate DateTime
+  timeSlot       String?
+  type           String   @default("WALK_IN") // WALK_IN, SCHEDULED, HOME_COLLECTION, CORPORATE, ONLINE
+  status         String   @default("SCHEDULED") // SCHEDULED, CHECKED_IN, COMPLETED, CANCELLED, NO_SHOW
+  tokenNumber    Int?
+  notes          String?
+  homeAddress    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor         Doctor?      @relation(fields: [doctorId], references: [id])
+  order          TestOrder?
+
+  @@index([organizationId, appointmentDate])
+  @@index([patientId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test orders, samples, results, reports (lab workflow)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TestOrder {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String?
+  orderCode      String
+  patientId      String
+  doctorId       String?
+  appointmentId  String? @unique
+  createdById    String
+  approvedById   String?
+  status         String   @default("REGISTERED")
+  // REGISTERED -> COLLECTED -> PROCESSING -> COMPLETED -> VERIFIED -> APPROVED -> DELIVERED -> ARCHIVED
+  priority       String   @default("ROUTINE") // ROUTINE, URGENT, STAT
+  isHomeCollection Boolean @default(false)
+  notes          String?
+  totalAmount    Float    @default(0)
+  discountAmount Float    @default(0)
+  taxAmount      Float    @default(0)
+  payableAmount  Float    @default(0)
+  reportDueAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor         Doctor?      @relation(fields: [doctorId], references: [id])
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  createdBy      User         @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  approvedBy     User?        @relation("OrderApprovedBy", fields: [approvedById], references: [id])
+  orderTests     OrderTest[]
+  samples        Sample[]
+  report         Report?
+  invoice        Invoice?
+
+  @@unique([organizationId, orderCode])
+  @@index([organizationId, status])
+  @@index([patientId])
+}
+
+model OrderTest {
+  id          String   @id @default(cuid())
+  orderId     String
+  testId      String
+  price       Float
+  status      String   @default("PENDING") // PENDING, COLLECTED, PROCESSING, COMPLETED, VERIFIED, APPROVED
+  createdAt   DateTime @default(now())
+
+  order       TestOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  test        Test      @relation(fields: [testId], references: [id])
+  sample      Sample?   @relation(fields: [sampleId], references: [id])
+  sampleId    String?
+  results     Result[]
+
+  @@index([orderId])
+  @@index([testId])
+}
+
+model Sample {
+  id             String   @id @default(cuid())
+  organizationId String
+  orderId        String
+  sampleCode     String
+  barcode        String
+  sampleType     String
+  tubeType       String?
+  status         String   @default("COLLECTED") // COLLECTED, RECEIVED, PROCESSING, REJECTED, COMPLETED
+  collectedAt    DateTime @default(now())
+  receivedAt     DateTime?
+  collectedById  String?
+  collectorName  String?
+  rejectionReason String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order          TestOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  collectedBy    User?     @relation(fields: [collectedById], references: [id])
+  orderTests     OrderTest[]
+  results        Result[]
+
+  @@unique([organizationId, barcode])
+  @@index([orderId])
+}
+
+model Result {
+  id             String   @id @default(cuid())
+  orderTestId    String
+  sampleId       String?
+  value          String
+  unit           String?
+  flag           String   @default("NORMAL") // NORMAL, LOW, HIGH, CRITICAL_LOW, CRITICAL_HIGH, ABNORMAL
+  referenceRange String?
+  enteredById    String?
+  approvedById   String?
+  status         String   @default("ENTERED") // ENTERED, VERIFIED, APPROVED
+  remarks        String?
+  enteredAt      DateTime @default(now())
+  approvedAt     DateTime?
+
+  orderTest      OrderTest @relation(fields: [orderTestId], references: [id], onDelete: Cascade)
+  sample         Sample?   @relation(fields: [sampleId], references: [id])
+  enteredBy      User?     @relation("ResultEnteredBy", fields: [enteredById], references: [id])
+  approvedBy     User?     @relation("ResultApprovedBy", fields: [approvedById], references: [id])
+
+  @@index([orderTestId])
+}
+
+model Report {
+  id             String   @id @default(cuid())
+  organizationId String
+  orderId        String
+  reportCode     String
+  status         String   @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, DELIVERED
+  approvedById   String?
+  approvedAt     DateTime?
+  pathologistRemarks String?
+  digitalSignature String?
+  verificationToken String @unique
+  pdfUrl         String?
+  template       String   @default("default")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order          TestOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  approvedBy     User?     @relation(fields: [approvedById], references: [id])
+
+  @@unique([organizationId, reportCode])
+  @@unique([orderId])
+  @@index([orderId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Billing & Finance
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String?
+  invoiceCode    String
+  orderId        String?
+  patientId      String
+  type           String   @default("INVOICE") // INVOICE, ESTIMATE, CREDIT_NOTE
+  status         String   @default("UNPAID") // UNPAID, PARTIAL, PAID, CANCELLED, REFUNDED
+  subtotal       Float    @default(0)
+  discountAmount Float    @default(0)
+  discountPercent Float   @default(0)
+  taxAmount      Float    @default(0)
+  roundOff       Float    @default(0)
+  totalAmount    Float    @default(0)
+  paidAmount     Float    @default(0)
+  balanceDue     Float    @default(0)
+  paymentMode    String?
+  notes          String?
+  invoiceDate    DateTime @default(now())
+  dueDate        DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  order          TestOrder?   @relation(fields: [orderId], references: [id])
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  items          InvoiceItem[]
+  payments       Payment[]
+
+  @@unique([organizationId, invoiceCode])
+  @@unique([orderId])
+  @@index([organizationId, status])
+  @@index([patientId])
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  testId      String?
+  quantity    Int      @default(1)
+  rate        Float
+  discount    Float    @default(0)
+  taxPercent  Float    @default(0)
+  amount      Float
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  organizationId String
+  amount         Float
+  mode           String   // CASH, CARD, UPI, NETBANKING, CHEQUE, WALLET
+  reference      String?
+  status         String   @default("SUCCESS") // SUCCESS, PENDING, FAILED
+  receivedById   String?
+  remarks        String?
+  paidAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  receivedBy     User?    @relation(fields: [receivedById], references: [id])
+
+  @@index([invoiceId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inventory & Purchase
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String?
+  contactPerson  String?
+  phone          String?
+  email          String?
+  address        String?
+  gstin          String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+
+  @@index([organizationId])
+}
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String?
+  name           String
+  code           String
+  category       String   // REAGENT, CONSUMABLE, EQUIPMENT
+  unit           String   // e.g. mL, pack, unit
+  stockQty       Float    @default(0)
+  reorderLevel   Float    @default(0)
+  reorderQty     Float    @default(0)
+  costPerUnit    Float    @default(0)
+  expiryDate     DateTime?
+  batchNo        String?
+  location       String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+  movements      StockMovement[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  itemId      String
+  type        String   // IN, OUT, ADJUST, RETURN
+  quantity    Float
+  balance     Float
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  @@index([itemId])
+}
+
+model PurchaseOrder {
+  id             String   @id @default(cuid())
+  organizationId String
+  poCode         String
+  supplierId     String
+  status         String   @default("DRAFT") // DRAFT, SENT, PARTIAL, RECEIVED, CANCELLED
+  totalAmount    Float    @default(0)
+  paidAmount     Float    @default(0)
+  orderDate      DateTime @default(now())
+  receivedDate   DateTime?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier       Supplier     @relation(fields: [supplierId], references: [id])
+  items          PurchaseOrderItem[]
+
+  @@unique([organizationId, poCode])
+}
+
+model PurchaseOrderItem {
+  id          String   @id @default(cuid())
+  poId        String
+  itemName    String
+  itemId      String?
+  quantity    Float
+  rate        Float
+  amount      Float
+  receivedQty Float    @default(0)
+  po          PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  @@index([poId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// System
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  entity         String
+  entityId       String?
+  details        String?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, createdAt])
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  type           String   // INFO, WARNING, CRITICAL, SUCCESS
+  title          String
+  message        String
+  channel        String   @default("IN_APP") // IN_APP, EMAIL, SMS, WHATSAPP
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@index([organizationId, read])
+}
+
+model Setting {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  value          String
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@unique([organizationId, key])
+}
