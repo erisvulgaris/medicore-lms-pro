@@ -2,7 +2,7 @@ import type { Permission } from "@/lib/permissions"
 import {
   LayoutDashboard, Users, FlaskConical, CalendarClock, ClipboardList, TestTube2,
   Microscope, FileText, Receipt, Package, ShoppingCart, Stethoscope, Settings,
-  ScrollText, Gauge, TrendingUp, MapPin, Printer, type LucideIcon,
+  ScrollText, Gauge, TrendingUp, MapPin, Printer, UserCircle, type LucideIcon,
 } from "lucide-react"
 
 export interface NavItem {
@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view", group: "Overview" },
   { key: "analytics", label: "Lab Analytics", icon: Gauge, permission: "dashboard.view", group: "Overview" },
   { key: "patients", label: "Patients", icon: Users, permission: "patients.read", group: "Clinical" },
+  { key: "patient-portal", label: "Patient Portal", icon: UserCircle, permission: "patients.read", group: "Clinical" },
   { key: "appointments", label: "Appointments", icon: CalendarClock, permission: "appointments.read", group: "Clinical" },
   { key: "orders", label: "Test Orders", icon: ClipboardList, permission: "orders.read", group: "Clinical" },
   { key: "home-collection", label: "Home Collection", icon: MapPin, permission: "orders.read", group: "Clinical" },
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "inventory", label: "Inventory", icon: Package, permission: "inventory.read", group: "Inventory" },
   { key: "purchases", label: "Purchase Orders", icon: ShoppingCart, permission: "purchases.read", group: "Inventory" },
   { key: "doctors", label: "Referring Doctors", icon: Stethoscope, permission: "doctors.read", group: "Directory" },
+  { key: "doctor-portal", label: "Doctor Portal", icon: Stethoscope, permission: "doctors.read", group: "Directory" },
   { key: "commissions", label: "Commission Reports", icon: TrendingUp, permission: "doctors.read", group: "Directory" },
   { key: "audit", label: "Audit Log", icon: ScrollText, permission: "audit.view", group: "System" },
   { key: "settings", label: "Settings", icon: Settings, permission: "settings.manage", group: "System" },

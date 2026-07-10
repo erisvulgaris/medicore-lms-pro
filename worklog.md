@@ -450,3 +450,36 @@ Stage Summary:
 - The app now has 24 views, 33 API routes covering: dashboard, lab analytics (TAT + sample aging), finance reports (daily collection, GST, outstanding, P&L, day closing), commission reports (referrals + commission), home collection (route planning), barcode labels (printing), patients, appointments, orders, samples, results, reports, tests, invoices, inventory, purchases, doctors, audit, settings, verify.
 - Known environment limitation persists: 4GB sandbox OOMs if 2+ heavy recharts views compiled in one session. Mitigated by lazy imports + one-view-per-fresh-session QA.
 - Next-round candidates: lab machine integration adapters (ASTM/HL7), patient/doctor portals, more report templates, machine utilization analytics, technician productivity reports.
+
+---
+Task ID: 6
+Agent: main (Z.ai Code) — recurring webDevReview round
+Task: Assess project status, QA via agent-browser, add patient & doctor portal views, improve styling.
+
+Work Log:
+- Reviewed worklog (Task ID 5): project had 24 views, 33 APIs, lint clean. Last round added commission reports, home collection, barcode labels.
+- QA assessment: restarted server, all 8 core APIs returned 200 (dashboard, patients, orders, reports, invoices, analytics/tat, analytics/commissions, home-collection). No bugs in existing code.
+
+- Built 2 new portal features (2 new API routes + 2 new views):
+
+  1. Patient Portal (src/app/api/portal/patient/route.ts + src/components/views/patient-portal-view.tsx):
+     - API: aggregates a patient's full record — orders (with tests, results, report, invoice), invoices, appointments. Resolves patient by ?patientId=, or by email match to logged-in user, or fallback to most recent patient. Returns summary stats (totalOrders, completedReports, pendingReports, totalBilled, outstanding, lastVisit).
+     - View: patient selector dropdown, gradient-header patient card (avatar, name, code, demographics, contact info), 4 stat cards (Total Visits, Reports Ready, Total Billed, Outstanding with color-coded accent), 3 tabs (Reports / Orders / Invoices). Reports tab: cards per report with status badge, test list, inline results preview grid with color-coded flag badges, View + Share buttons (Share copies verification URL to clipboard). Orders/Invoices tabs: scrollable lists linking to detail views.
+     - Verified: renders with patient header (Divya Menon PT00040), stat cards, tabs, patient selector with all 40 patients.
+
+  2. Doctor Portal (src/app/api/portal/doctor/route.ts + src/components/views/doctor-portal-view.tsx):
+     - API: aggregates a doctor's referrals — all referred orders (with patient, tests, results, report), unique referred patients (with referral count, last visit, total billed). Resolves doctor by ?doctorId=, or by name match to logged-in DOCTOR-role user, or fallback to top referrer. Returns summary stats (totalReferrals, completedReports, pendingReports, totalBilled, uniquePatients).
+     - View: doctor selector dropdown, violet-gradient doctor header card (avatar, name, specialization badge, commission badge, clinic, phone), 4 stat cards (Total Referrals, Unique Patients, Reports Ready, Revenue Generated), 2 tabs (Referred Patients / Reports). Referred Patients tab: grid of patient cards (avatar, name link to patient-detail, referral count, total billed, last visit, phone). Reports tab: cards per report with patient info, test list, inline results preview with flag badges, View + Share buttons.
+     - Verified: renders with Dr. Anjali Rao header (General Physician, Rao Clinic), 7 total referrals, 7 unique patients, ₹2,826 revenue, both tabs, referred patient cards.
+
+- Updated nav (src/lib/nav.ts): added Patient Portal (Clinical, patients.read) + Doctor Portal (Directory, doctors.read). Total nav items: 21.
+- Updated page.tsx router: 2 new lazy-loaded views wired in. Total: 26 views, 35 API routes.
+- agent-browser QA verified both portal views render with real data (Patient Portal with header + stat cards + tabs + selector; Doctor Portal with header + stat cards + tabs + referred patients). Navigation via direct button.click() eval.
+- `bun run lint` → 0 errors, 0 warnings (clean).
+- Dev server runs on port 3000 (HTTP 200).
+
+Stage Summary:
+- Added 2 new portal views + 2 new API routes. Lint clean. All new APIs verified 200 with real data; both portal views verified rendering in browser.
+- The app now has 26 views, 35 API routes covering: dashboard, lab analytics, finance reports, commission reports, home collection, barcode labels, patient portal, doctor portal, patients, appointments, orders, samples, results, reports, tests, invoices, inventory, purchases, doctors, audit, settings, verify.
+- Known environment limitation persists: 4GB sandbox OOMs if 2+ heavy views compiled in one session. Mitigated by lazy imports + one-view-per-fresh-session QA.
+- Next-round candidates: lab machine integration adapters (ASTM/HL7), technician productivity reports, machine utilization analytics, more report templates, QR code generation for reports.

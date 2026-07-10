@@ -13,6 +13,8 @@ const FinanceView = dynamic(() => import("@/components/views/finance-view").then
 const CommissionsView = dynamic(() => import("@/components/views/commissions-view").then(m => ({ default: m.CommissionsView })), { ssr: false })
 const HomeCollectionView = dynamic(() => import("@/components/views/home-collection-view").then(m => ({ default: m.HomeCollectionView })), { ssr: false })
 const BarcodesView = dynamic(() => import("@/components/views/barcodes-view").then(m => ({ default: m.BarcodesView })), { ssr: false })
+const PatientPortalView = dynamic(() => import("@/components/views/patient-portal-view").then(m => ({ default: m.PatientPortalView })), { ssr: false })
+const DoctorPortalView = dynamic(() => import("@/components/views/doctor-portal-view").then(m => ({ default: m.DoctorPortalView })), { ssr: false })
 const PatientsView = dynamic(() => import("@/components/views/patients-view").then(m => ({ default: m.PatientsView })), { ssr: false })
 const PatientDetail = dynamic(() => import("@/components/views/patient-detail").then(m => ({ default: m.PatientDetail })), { ssr: false })
 const TestsView = dynamic(() => import("@/components/views/tests-view").then(m => ({ default: m.TestsView })), { ssr: false })
@@ -78,6 +80,8 @@ function ViewRouter({ view }: { view: string }) {
     case "commissions": return <CommissionsView />
     case "home-collection": return <HomeCollectionView />
     case "barcodes": return <BarcodesView />
+    case "patient-portal": return <PatientPortalView />
+    case "doctor-portal": return <DoctorPortalView />
     case "patients": return <PatientsView />
     case "patient-detail": return <PatientDetail />
     case "tests": return <TestsView />
