@@ -483,3 +483,51 @@ Stage Summary:
 - The app now has 26 views, 35 API routes covering: dashboard, lab analytics, finance reports, commission reports, home collection, barcode labels, patient portal, doctor portal, patients, appointments, orders, samples, results, reports, tests, invoices, inventory, purchases, doctors, audit, settings, verify.
 - Known environment limitation persists: 4GB sandbox OOMs if 2+ heavy views compiled in one session. Mitigated by lazy imports + one-view-per-fresh-session QA.
 - Next-round candidates: lab machine integration adapters (ASTM/HL7), technician productivity reports, machine utilization analytics, more report templates, QR code generation for reports.
+
+---
+Task ID: 7
+Agent: main (Z.ai Code)
+Task: Streamline UX for small labs (reduce clicks, single-operator workflow) + push to GitHub.
+
+Work Log:
+- User feedback: "too many steps for smaller labs... advancing sample collected to various departments is very tedious and requires too many clicks... give a simple slider"
+- Built 3 new APIs for streamlined operations:
+  1. /api/orders/bulk-advance (POST): advance multiple orders through workflow stages in ONE call. Accepts {orderIds, targetStatus?}. Runs all side-effects for each stage passed (sample status, orderTest status, result approval, report generation). Permission-aware (approval step requires reports.approve or owner/admin/pathologist role).
+  2. /api/orders/quick-result (POST): enter a result inline without navigating to order detail. Accepts {orderTestId, value} or {orderId, testCode, value}. Auto-evaluates flag from reference ranges.
+  3. /api/express-register (POST): create patient + test order + sample + invoice + payment in ONE call. 3-step form: patient (new or existing) → tests → review with collect-now/pay-now toggles.
+
+- Built Quick Lab view (src/components/views/quick-lab-view.tsx) — the single-screen operator console:
+  * 3 tabs: Active (orders in progress), Results (pending result entry), Approve (awaiting pathologist approval)
+  * Inline workflow STEPPER on each order card — 7 clickable segments (Registered→Collected→Processing→Completed→Verified→Approved→Delivered). Click any future segment to advance directly to that state in one click. Current segment highlighted, done segments filled with status color.
+  * Inline result entry — enter values directly in the queue (Enter to save), no navigation needed
+  * Inline approve action — see all results as badges, one-click "Approve & Generate Report"
+  * Bulk selection with checkboxes + bulk action bar (advance selected to Collected/Processing/Completed/Approve All)
+  * 4 quick stat cards (Active, Pending Results, Awaiting Approval, Selected)
+  * Express Register button (opens the combined form)
+
+- Built Express Registration dialog (src/components/views/express-register-dialog.tsx):
+  * 3-step wizard: Patient (search existing or new) → Tests (quick profiles + search) → Review (doctor, priority, collect-now, pay-now)
+  * Creates everything in one API call via /api/express-register
+
+- Enhanced Orders list view (src/components/views/orders-view.tsx):
+  * Progress bar is now CLICKABLE — click any segment to advance to that state (with stopPropagation so it doesn't open detail)
+  * Added inline "→ NextLabel" button on each order card for one-click advancement
+  * Added quickAdvance mutation + session to component
+
+- Updated nav: added "Quick Lab" (Overview group, Zap icon) as the 2nd item — right after Dashboard.
+- Updated page.tsx router: QuickLabView wired in as lazy-loaded view.
+- agent-browser QA verified: Quick Lab renders with 27 active orders, 10 pending results, 9 awaiting approval. Inline stepper shows clickable segments (Registered ✓, Collected, Processing...). Bulk-advance API tested: successfully advanced ORD-1001 DELIVERED→ARCHIVED.
+- `bun run lint` → 0 errors, 0 warnings (clean).
+- Total: 27 views, 38 API routes.
+
+- Created GitHub repository: https://github.com/erisvulgaris/medicore-lms (public)
+- Created comprehensive README.md with quickstart, features, tech stack, project structure, RBAC roles, workflow state machine.
+- Created .env.example.
+- Added project-specific .gitignore entries (dev.log, server.log, agent-ctx/, worklog.md).
+- Committed and pushed ALL project code to GitHub (main branch). Verified: all key files present (page.tsx, quick-lab-view.tsx, bulk-advance API, schema.prisma, README.md all return 200 from GitHub API).
+
+Stage Summary:
+- Streamlined the entire UX for small labs: Quick Lab console with one-click workflow slider, inline result entry, bulk operations, and express registration. Reduced a 5-6 click workflow (open order → scroll → click advance → confirm → back) to a SINGLE click on the stepper segment.
+- Full project pushed to GitHub: https://github.com/erisvulgaris/medicore-lms
+- The app now has 27 views, 38 API routes. Lint clean. Server running on port 3000.
+- Future changes can be pushed with: git add -A && git commit -m "..." && git push
