@@ -24,7 +24,8 @@ import { toast } from "sonner"
 const STATUS_TABS = ["ALL", "REGISTERED", "COLLECTED", "PROCESSING", "COMPLETED", "VERIFIED", "APPROVED", "DELIVERED"]
 
 export function OrdersView() {
-  const { navigate, can, viewParam } = useApp()
+  const { navigate, can, viewParam, session } = useApp()
+  const qc = useQueryClient()
   const [q, setQ] = useState("")
   const [status, setStatus] = useState("ALL")
   const [createOpen, setCreateOpen] = useState(viewParam === "new")
@@ -32,6 +33,12 @@ export function OrdersView() {
   const { data, isLoading } = useQuery({
     queryKey: ["orders", q, status],
     queryFn: () => api.get<{ orders: any[] }>(`/api/orders?q=${encodeURIComponent(q)}&status=${status}`),
+  })
+
+  const quickAdvance = useMutation({
+    mutationFn: (payload: { orderIds: string[]; targetStatus?: string }) => api.post("/api/orders/bulk-advance", payload),
+    onSuccess: (d: any) => { toast.success(`${d.advanced} order(s) advanced`); qc.invalidateQueries({ queryKey: ["orders"] }); qc.invalidateQueries({ queryKey: ["dashboard"] }) },
+    onError: (e: any) => toast.error(e.message),
   })
 
   return (
@@ -66,8 +73,11 @@ export function OrdersView() {
                 const st = ORDER_STATUS[o.status as keyof typeof ORDER_STATUS]
                 const pr = PRIORITY[o.priority as keyof typeof PRIORITY]
                 const stepIdx = ORDER_STATUS_FLOW.indexOf(o.status as any)
+                const canQuickAdvance = can("orders.write") && stepIdx < 6
+                const nextStatus = ORDER_STATUS_FLOW[stepIdx + 1]
+                const nextLabel = ORDER_STATUS[nextStatus as keyof typeof ORDER_STATUS]?.label
                 return (
-                  <button key={o.id} onClick={() => navigate("order-detail", o.id)} className="block w-full px-4 py-3.5 text-left transition-colors hover:bg-muted/50">
+                  <div key={o.id} onClick={() => navigate("order-detail", o.id)} className="block w-full cursor-pointer px-4 py-3.5 transition-colors hover:bg-muted/50">
                     <div className="flex items-center gap-3">
                       <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white", st?.color)}>
                         <ClipboardList className="h-5 w-5" />
@@ -84,19 +94,47 @@ export function OrdersView() {
                           {o.orderTests.length} test{o.orderTests.length > 1 ? "s" : ""} · {o.orderTests.map((ot: any) => ot.test.shortName || ot.test.code).join(", ")}
                           {o.doctor && ` · Ref: ${o.doctor.name}`}
                         </p>
-                        {/* Progress bar */}
+                        {/* Progress bar — clickable quick-advance segments */}
                         <div className="mt-2 flex items-center gap-1">
-                          {ORDER_STATUS_FLOW.map((s, i) => (
-                            <div key={s} className={cn("h-1 flex-1 rounded-full", i <= stepIdx ? st?.color : "bg-muted")} />
-                          ))}
+                          {ORDER_STATUS_FLOW.slice(0, 7).map((s, i) => {
+                            const done = i < stepIdx
+                            const current = i === stepIdx
+                            const reachable = canQuickAdvance && i > stepIdx && (s !== "APPROVED" || can("reports.approve") || ["ORG_OWNER", "SUPER_ADMIN", "BRANCH_ADMIN", "PATHOLOGIST"].includes(session?.role || ""))
+                            return (
+                              <button
+                                key={s}
+                                disabled={!reachable}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (reachable) quickAdvance.mutate({ orderIds: [o.id], targetStatus: s })
+                                }}
+                                className={cn(
+                                  "h-1.5 flex-1 rounded-full transition-all",
+                                  done ? st?.color : current ? "bg-primary" : "bg-muted",
+                                  reachable && "hover:opacity-70 cursor-pointer",
+                                )}
+                                title={ORDER_STATUS[s as keyof typeof ORDER_STATUS]?.label}
+                              />
+                            )
+                          })}
                         </div>
                       </div>
                       <div className="hidden text-right sm:block">
                         <p className="text-sm font-semibold">{formatCurrency(o.payableAmount)}</p>
                         <p className="text-xs text-muted-foreground">{formatDateTime(o.createdAt)}</p>
                       </div>
+                      {canQuickAdvance && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); quickAdvance.mutate({ orderIds: [o.id] }) }}
+                          disabled={quickAdvance.isPending}
+                          className="ml-2 shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-primary hover:text-primary-foreground"
+                          title={`Advance to ${nextLabel}`}
+                        >
+                          → {nextLabel}
+                        </button>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>

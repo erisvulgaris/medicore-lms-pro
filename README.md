@@ -1,0 +1,146 @@
+# MediCore LMS — Pathology Laboratory Management System
+
+An open-source, multi-tenant **Pathology Laboratory Management System** built for small labs and diagnostic centres. Manage the full diagnostic lifecycle — from patient registration and sample collection through result entry, pathologist approval, report delivery, billing, and financial reporting.
+
+Built with **Next.js 16, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma ORM (SQLite, PostgreSQL-ready)**.
+
+## ✨ Key Features
+
+### Quick Lab (Small-Lab Optimized)
+A single-screen **operator console** designed for small labs where one person does everything:
+- **One-click workflow slider** — advance orders through all stages (Registered → Collected → Processing → Completed → Verified → Approved) with a single click, no page navigation
+- **Inline result entry** — enter test results directly in the queue without opening detail pages
+- **Bulk operations** — select multiple orders and advance them all at once
+- **Express registration** — patient + test order + sample collection + payment in one 3-step form
+
+### Core Modules
+- **Dashboard** — revenue/patient charts, TAT compliance gauge, sample aging, critical alerts, activity feed
+- **Patients** — registration, search, detail timeline, duplicate detection
+- **Appointments** — walk-in, scheduled, home collection, token system
+- **Test Orders** — full 8-stage lab workflow with progress bars and inline quick-advance
+- **Sample Collection** — barcode generation, receive/reject tracking
+- **Result Entry** — auto-calculated flags (Normal/Low/High/Critical) from reference ranges
+- **Reports** — printable PDF reports with QR verification, digital signature, pathologist approval
+- **Billing** — GST invoices, payments, outstanding tracking, multiple payment modes
+- **Finance Reports** — daily collection, GST report, outstanding aging, P&L, day closing
+- **Inventory** — reagents/consumables, low-stock alerts, expiry tracking, stock adjustments
+- **Purchase Orders** — suppliers, POs, GRN
+- **Lab Analytics** — TAT compliance, sample aging, per-test breakdown
+- **Commission Reports** — doctor referral analytics with compliance notes
+- **Home Collection** — route planning grouped by area
+- **Barcode Labels** — printable sample labels with barcode visuals
+- **Patient Portal** — self-service reports, invoices, secure sharing
+- **Doctor Portal** — referred patients, reports, referral analytics
+- **Audit Log** — immutable record of all actions
+
+### Architecture
+- **Multi-tenant** — `organizationId` on every table, enforced at the API layer
+- **RBAC** — 10 roles (Super Admin → Patient) with granular permission sets
+- **Clean architecture** — UI → API → Service → Data (Prisma)
+- **PostgreSQL-ready** — no SQLite-specific SQL; migration requires minimal changes
+- **Lazy-loaded views** — optimized for performance
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+bun install
+
+# Set up the database
+cp .env.example .env
+bun run db:push
+
+# Seed demo data (1 org, 9 users, 40 patients, 32 orders, full inventory)
+bun run prisma/seed.ts
+
+# Start the dev server
+bun run dev
+```
+
+Open `http://localhost:3000` and pick a role on the login screen.
+
+### Demo Credentials
+The seed script creates 9 users (one per role). Pick any on the role-gate login screen:
+- **Organization Owner** — full access
+- **Pathologist** — result approval, report signing
+- **Lab Technician** — sample collection, result entry
+- **Receptionist** — registration, billing
+- **Cashier** — payments
+- **Accountant** — finance reports
+- And more...
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 (strict) |
+| UI | Tailwind CSS 4, shadcn/ui, Lucide icons, Recharts |
+| State | Zustand, TanStack Query |
+| Database | Prisma ORM → SQLite (PostgreSQL-ready) |
+| Auth | RBAC via permission matrix (session header-based demo) |
+| Forms | React Hook Form + Zod |
+
+## 📁 Project Structure
+
+```
+src/
+├── app/
+│   ├── api/              # Route handlers (35 endpoints)
+│   │   ├── dashboard/
+│   │   ├── patients/
+│   │   ├── orders/       # + bulk-advance, quick-result
+│   │   ├── express-register/
+│   │   ├── analytics/    # tat, finance, commissions
+│   │   ├── portal/       # patient, doctor
+│   │   └── ...
+│   ├── page.tsx          # Single-page dashboard with view router
+│   └── layout.tsx
+├── components/
+│   ├── views/            # 27 view modules
+│   ├── ui/               # shadcn/ui components
+│   ├── app-shell.tsx     # Sidebar + topbar + role switcher
+│   └── command-palette.tsx
+└── lib/
+    ├── db.ts             # Prisma client
+    ├── permissions.ts    # RBAC matrix
+    ├── constants.ts      # Workflow states, flags, reference ranges
+    ├── session.ts        # requireUser/requirePermission
+    ├── format.ts         # Currency, date, number formatting
+    ├── csv.ts            # CSV export utility
+    └── store.ts          # Zustand app store
+prisma/
+├── schema.prisma         # 24 models, multi-tenant
+└── seed.ts               # Realistic demo data
+```
+
+## 🔐 RBAC Roles
+
+| Role | Capabilities |
+|---|---|
+| Super Admin | Full system access across all organizations |
+| Organization Owner | Full control of own lab & all branches |
+| Branch Admin | Manage assigned branch(es) |
+| Receptionist | Registration, billing, appointments |
+| Lab Technician | Collection, processing, result entry |
+| Pathologist | Approve reports, digital signature, critical alerts |
+| Doctor | Refer patients, view reports |
+| Phlebotomist | Home collection, sample status |
+| Cashier | Payments, refunds, daily settlement |
+| Accountant | Financial reports, GST, expenses |
+
+## 📊 Workflow State Machine
+
+```
+Registered → Collected → Processing → Completed → Verified → Approved → Delivered → Archived
+```
+
+Each transition is audited. The **Quick Lab** view lets operators advance through these stages with a single click on the inline stepper.
+
+## 📄 License
+
+Open-source. Free to use, modify, and distribute.
+
+## 🤝 Contributing
+
+This is an open-source project. Contributions welcome — please ensure all changes pass `bun run lint` and maintain multi-tenant isolation.
