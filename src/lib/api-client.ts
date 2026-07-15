@@ -1,24 +1,30 @@
-// Client-side fetch wrapper that injects the demo user header.
-const USER_KEY = "lms_demo_user_id"
+// Client-side fetch wrapper with Bearer token authentication.
+const TOKEN_KEY = "lms_auth_token"
 
-export function getDemoUserId(): string | null {
+export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null
-  return localStorage.getItem(USER_KEY)
+  return localStorage.getItem(TOKEN_KEY)
 }
 
-export function setDemoUserId(id: string) {
+export function setAuthToken(token: string) {
   if (typeof window === "undefined") return
-  localStorage.setItem(USER_KEY, id)
-  window.dispatchEvent(new Event("lms-user-change"))
+  localStorage.setItem(TOKEN_KEY, token)
+  window.dispatchEvent(new Event("lms-auth-change"))
+}
+
+export function clearAuthToken() {
+  if (typeof window === "undefined") return
+  localStorage.removeItem(TOKEN_KEY)
+  window.dispatchEvent(new Event("lms-auth-change"))
 }
 
 export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
-  const userId = getDemoUserId()
+  const token = getAuthToken()
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(opts.headers as Record<string, string>),
   }
-  if (userId) headers["x-user-id"] = userId
+  if (token) headers["Authorization"] = `Bearer ${token}`
   const res = await fetch(path, { ...opts, headers })
   if (!res.ok) {
     let msg = `Request failed (${res.status})`
@@ -26,7 +32,9 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
       const j = await res.json()
       msg = j.error || msg
     } catch {}
-    throw new Error(msg)
+    const err = new Error(msg)
+    ;(err as any).status = res.status
+    throw err
   }
   return res.json()
 }

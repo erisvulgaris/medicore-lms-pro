@@ -3,12 +3,13 @@ import { db } from "@/lib/db"
 import { requirePermission, errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
 import { evaluateFlag, type RefRange } from "@/lib/constants"
+import { validateBody, resultCreateSchema } from "@/lib/validation"
 
 // Save / update a result for an orderTest
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermission("results.write")
-    const body = await req.json()
+    const body = await validateBody(req, resultCreateSchema)
     const { orderTestId, value, unit, referenceRange, remarks } = body
 
     const ot = await db.orderTest.findUnique({

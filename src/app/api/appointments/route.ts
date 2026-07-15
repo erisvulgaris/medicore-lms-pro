@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requirePermission, errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
+import { validateBody, appointmentCreateSchema } from "@/lib/validation"
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermission("appointments.write")
-    const body = await req.json()
+    const body = await validateBody(req, appointmentCreateSchema)
     const count = await db.appointment.count({ where: { organizationId: user.organizationId } })
     const appointment = await db.appointment.create({
       data: {

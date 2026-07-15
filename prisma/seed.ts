@@ -1,4 +1,7 @@
 import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
+import crypto from "crypto"
+import fs from "fs"
 import { randomToken } from "../src/lib/format"
 
 const db = new PrismaClient()
@@ -42,8 +45,14 @@ async function main() {
     create: { organizationId: org.id, name: "Indiranagar Branch", code: "INDIRA", city: "Bengaluru", phone: "+91 80 4000 2000" },
   })
 
-  // ── Users (all roles) ──
-  const passwordHash = "$2b$10$demoHashPlaceholderNotForProductionUse1234567890123456" // demo only
+  // ── Users (all roles) with real bcrypt-hashed passwords ──
+  // Generate a strong per-role password and hash it with bcrypt (12 rounds).
+  const generatedPasswords: { role: string; email: string; password: string }[] = []
+  function genPassword(role: string) {
+    // Deterministic but secure-ish demo password: role + random hex suffix
+    const suffix = crypto.randomBytes(4).toString("hex")
+    return `${role.slice(0, 4).toLowerCase()}@${suffix}`
+  }
   const users = [
     { name: "Arjun Mehta", email: "owner@medicore.example", role: "ORG_OWNER", branchId: null },
     { name: "Priya Nair", email: "admin@medicore.example", role: "BRANCH_ADMIN", branchId: branch1.id },
@@ -56,14 +65,27 @@ async function main() {
     { name: "Karthik Menon", email: "accounts@medicore.example", role: "ACCOUNTANT", branchId: branch1.id },
   ]
   const userMap: Record<string, string> = {}
+  const credentialsFile: string[] = []
+  credentialsFile.push("# MediCore LMS — Generated Credentials")
+  credentialsFile.push("# These are real bcrypt-hashed accounts. Use these to log in.")
+  credentialsFile.push("# Format: email | password | role")
+  credentialsFile.push("")
   for (const u of users) {
+    const plainPassword = genPassword(u.role)
+    const passwordHash = bcrypt.hashSync(plainPassword, 12)
     const created = await db.user.upsert({
       where: { organizationId_email: { organizationId: org.id, email: u.email } },
-      update: {},
+      update: { passwordHash }, // update hash on re-seed so password stays valid
       create: { ...u, organizationId: org.id, passwordHash },
     })
     userMap[u.role] = created.id
+    generatedPasswords.push({ role: u.role, email: u.email, password: plainPassword })
+    credentialsFile.push(`${u.email} | ${plainPassword} | ${u.role}`)
+    console.log(`  ${u.role.padEnd(16)} ${u.email.padEnd(32)} password: ${plainPassword}`)
   }
+  // Write credentials to a file for the operator
+  fs.writeFileSync("/home/z/my-project/CREDENTIALS.md", credentialsFile.join("\n"))
+  console.log("\n📋 Credentials written to CREDENTIALS.md\n")
 
   // ── Test categories ──
   const categories = ["Hematology", "Biochemistry", "Microbiology", "Serology", "Clinical Pathology", "Thyroid", "Diabetes"]

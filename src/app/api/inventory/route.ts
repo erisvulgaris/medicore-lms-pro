@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requirePermission, errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
+import { validateBody, inventoryCreateSchema } from "@/lib/validation"
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermission("inventory.write")
-    const body = await req.json()
+    const body = await validateBody(req, inventoryCreateSchema)
     const item = await db.inventoryItem.create({
       data: {
         organizationId: user.organizationId,

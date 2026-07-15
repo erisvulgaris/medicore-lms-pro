@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import { useApp } from "@/lib/store"
 import { NAV_ITEMS } from "@/lib/nav"
-import { api, getDemoUserId, setDemoUserId } from "@/lib/api-client"
+import { api, getAuthToken, setAuthToken, clearAuthToken } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { ROLES } from "@/lib/permissions"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -17,12 +19,12 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CommandPalette } from "@/components/command-palette"
-import { Activity, Bell, Check, ChevronDown, LogOut, Menu, Moon, Search, Sun, Stethoscope, TestTube2, UserCircle } from "lucide-react"
+import { Activity, Bell, Moon, Search, Sun, TestTube2, LogOut, Menu, ChevronDown, ShieldCheck, Loader2, AlertCircle } from "lucide-react"
 import { initials, timeAgo } from "@/lib/format"
 import { toast } from "sonner"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { session, organization, demoUsers, setSession, setOrganization, setDemoUsers, navigate, view, can } = useApp()
+  const { session, organization, branch, setSession, setOrganization, setBranch, navigate, view, can } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -32,32 +34,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  // bootstrap session
+  // Bootstrap session on mount + when auth token changes
   useEffect(() => {
     const load = async () => {
+      const token = getAuthToken()
+      if (!token) return
       try {
-        const data = await api.get<{ user: typeof session; organization: typeof organization; demoUsers?: typeof demoUsers }>("/api/session")
+        const data = await api.get<{ user: any; organization: any; branch: any }>("/api/auth/me")
         if (data.user) {
           setSession(data.user)
           setOrganization(data.organization)
-        } else if (data.demoUsers) {
-          setDemoUsers(data.demoUsers)
-          setOrganization(data.organization)
+          setBranch(data.branch)
+        } else {
+          clearAuthToken()
         }
       } catch {
-        // ignore
+        clearAuthToken()
       }
     }
     load()
     const handler = () => load()
-    window.addEventListener("lms-user-change", handler)
-    return () => window.removeEventListener("lms-user-change", handler)
-  }, [setSession, setOrganization, setDemoUsers])
+    window.addEventListener("lms-auth-change", handler)
+    return () => window.removeEventListener("lms-auth-change", handler)
+  }, [setSession, setOrganization, setBranch])
 
-  // notifications
+  // Notifications
   const [notifs, setNotifs] = useState<any[]>([])
   const loadNotifs = async () => {
-    if (!getDemoUserId()) return
+    if (!getAuthToken()) return
     try {
       const d = await api.get<{ notifications: any[] }>("/api/notifications")
       setNotifs(d.notifications)
@@ -67,13 +71,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (session) loadNotifs()
     const h = () => session && loadNotifs()
-    window.addEventListener("lms-user-change", h)
-    return () => window.removeEventListener("lms-user-change", h)
+    window.addEventListener("lms-auth-change", h)
+    return () => window.removeEventListener("lms-auth-change", h)
   }, [session])
 
-  const switchUser = async (id: string, name: string) => {
-    setDemoUserId(id)
-    toast.success(`Signed in as ${name}`)
+  const logout = async () => {
+    try { await api.post("/api/auth/logout") } catch {}
+    clearAuthToken()
+    setSession(null)
+    setOrganization(null)
+    setBranch(null)
+    toast.success("Signed out")
   }
 
   const grouped = NAV_ITEMS.reduce<Record<string, typeof NAV_ITEMS>>((acc, item) => {
@@ -89,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) {
-    return <RoleGate demoUsers={demoUsers} orgName={organization?.name} onPick={switchUser} />
+    return <LoginScreen />
   }
 
   const SidebarContent = (
@@ -148,12 +156,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-sidebar lg:block">
         {SidebarContent}
       </aside>
 
-      {/* Mobile sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0">
           {SidebarContent}
@@ -161,7 +167,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Topbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
           <Sheet>
             <SheetTrigger asChild>
@@ -181,7 +186,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="ml-auto flex items-center gap-1.5">
-            {/* Notifications */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
@@ -212,12 +216,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </PopoverContent>
             </Popover>
 
-            {/* Theme */}
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {mounted && theme === "dark" ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
             </Button>
 
-            {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 px-1.5 sm:px-2">
@@ -236,27 +238,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="flex flex-col">
                     <p className="text-sm font-medium">{session.name}</p>
                     <p className="text-xs text-muted-foreground">{session.email}</p>
-                    <Badge variant="secondary" className="mt-1.5 w-fit text-[10px]">{ROLES[session.role as keyof typeof ROLES] ?? session.role}</Badge>
+                    <Badge variant="secondary" className="mt-1.5 w-fit gap-1 text-[10px]"><ShieldCheck className="h-2.5 w-2.5" /> {ROLES[session.role as keyof typeof ROLES] ?? session.role}</Badge>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Switch role (demo)</DropdownMenuLabel>
-                <ScrollArea className="h-56">
-                  <div className="px-1">
-                    {demoUsers.map((u) => (
-                      <DropdownMenuItem key={u.id} onClick={() => switchUser(u.id, u.name)} className="gap-2 py-1.5">
-                        <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                        <div className="flex flex-1 flex-col">
-                          <span className="text-xs font-medium">{u.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{ROLES[u.role as keyof typeof ROLES] ?? u.role}</span>
-                        </div>
-                        {u.id === session.id && <Check className="h-3.5 w-3.5 text-primary" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                </ScrollArea>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { setDemoUserId(""); window.location.reload() }} className="text-rose-600 focus:text-rose-600">
+                <DropdownMenuItem onClick={logout} className="text-rose-600 focus:text-rose-600">
                   <LogOut className="mr-2 h-3.5 w-3.5" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -273,7 +259,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <footer className="mt-auto border-t bg-background/50 px-6 py-4">
           <div className="mx-auto flex max-w-[1400px] flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
             <p>MediCore LMS · Open-source Pathology Laboratory Management System</p>
-            <p className="flex items-center gap-1.5"><Activity className="h-3 w-3" /> System operational · v1.0</p>
+            <p className="flex items-center gap-1.5"><Activity className="h-3 w-3" /> System operational · v2.0</p>
           </div>
         </footer>
       </div>
@@ -283,55 +269,69 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Role selection gate (demo) — shown when no user is selected
-function RoleGate({ demoUsers, orgName, onPick }: { demoUsers: { id: string; name: string; email: string; role: string }[]; orgName?: string; onPick: (id: string, name: string) => void }) {
-  const { navigate } = useApp()
+// ── Real login screen (email + password) ──
+function LoginScreen() {
+  const { setSession, setOrganization, setBranch } = useApp()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) { setError("Enter email and password"); return }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await api.post<{ token: string; user: any; organization: any; branch: any }>("/api/auth/login", { email, password })
+      setAuthToken(res.token)
+      setSession(res.user)
+      setOrganization(res.organization)
+      setBranch(res.branch)
+      toast.success(`Welcome back, ${res.user.name}`)
+    } catch (e: any) {
+      setError(e.message || "Login failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-grid p-6">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-      <div className="relative w-full max-w-2xl">
+      <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
             <TestTube2 className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">MediCore LMS</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">{orgName ? `${orgName} · ` : ""}Pathology Laboratory Management System</p>
-          <p className="mt-4 text-sm text-muted-foreground">Choose a role to explore the demo. Each role sees a permission-scoped view of the system.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">Pathology Laboratory Management System</p>
         </div>
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {demoUsers.map((u) => {
-            const Icon = roleIcon(u.role)
-            return (
-              <button
-                key={u.id}
-                onClick={() => onPick(u.id, u.name)}
-                className="group flex items-center gap-3.5 rounded-xl border bg-card p-4 text-left transition-all hover:border-primary/40 hover:bg-accent/40 hover:shadow-md"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{u.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{ROLES[u.role as keyof typeof ROLES] ?? u.role}</p>
-                </div>
-                <ChevronDown className="h-4 w-4 -rotate-90 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </button>
-            )
-          })}
-        </div>
+
+        <form onSubmit={submit} className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-medium">Email</Label>
+            <Input id="email" type="email" placeholder="you@lab.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoFocus />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-xs font-medium">Password</Label>
+            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          </div>
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Sign in
+          </Button>
+        </form>
+
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Demo environment · Multi-tenant · RBAC enforced at API layer · Tenant-isolated queries
+          Secure login · Passwords hashed with bcrypt · Token-based sessions
         </p>
       </div>
     </div>
   )
-}
-
-function roleIcon(role: string) {
-  switch (role) {
-    case "ORG_OWNER": return Activity
-    case "PATHOLOGIST": return TestTube2
-    case "DOCTOR": return Stethoscope
-    default: return UserCircle
-  }
 }

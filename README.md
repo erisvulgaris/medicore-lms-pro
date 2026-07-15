@@ -4,6 +4,37 @@ An open-source, multi-tenant **Pathology Laboratory Management System** built fo
 
 Built with **Next.js 16, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma ORM (SQLite, PostgreSQL-ready)**.
 
+## 🔐 Authentication & Security
+
+- **Real bcrypt password hashing** (12 rounds) — no plaintext passwords stored
+- **JWT token-based sessions** — 7-day expiry, stored in `Session` table (revocable)
+- **RBAC enforced at API layer** — every route checks permissions via `requirePermission()`
+- **Zod input validation** on all write endpoints (patients, orders, results, payments, inventory, appointments, doctors, login)
+- **Structured JSON logging** to stdout for production observability
+- **Session revocation** — logout deletes the session token from DB
+- **Inactive user blocking** — `active: false` users cannot authenticate
+
+### Login Flow
+1. POST `/api/auth/login` with `{ email, password }` → returns `{ token, user, organization }`
+2. Frontend stores token in `localStorage` and sends `Authorization: Bearer <token>` on all requests
+3. Server validates token via `Session` table (checks expiry + existence) on every request
+4. POST `/api/auth/logout` revokes the session
+
+### Generated Credentials
+Run `bun run prisma/seed.ts` to generate real bcrypt-hashed accounts. Credentials are written to `CREDENTIALS.md` (gitignored). The seed generates a unique password per role:
+
+| Role | Email | Password (example — re-seed to get yours) |
+|---|---|---|
+| Organization Owner | owner@medicore.example | `org_@<hex>` |
+| Branch Admin | admin@medicore.example | `bran@<hex>` |
+| Receptionist | reception@medicore.example | `rece@<hex>` |
+| Lab Technician | lab@medicore.example | `lab_@<hex>` |
+| Pathologist | path@medicore.example | `path@<hex>` |
+| Doctor | doctor@medicore.example | `doct@<hex>` |
+| Phlebotomist | phleb@medicore.example | `phle@<hex>` |
+| Cashier | cashier@medicore.example | `cash@<hex>` |
+| Accountant | accounts@medicore.example | `acco@<hex>` |
+
 ## ✨ Key Features
 
 ### Quick Lab (Small-Lab Optimized)

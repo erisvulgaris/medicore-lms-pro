@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requirePermission, errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
+import { validateBody, patientCreateSchema } from "@/lib/validation"
 
 export async function GET(req: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermission("patients.write")
-    const body = await req.json()
+    const body = await validateBody(req, patientCreateSchema)
     const count = await db.patient.count({ where: { organizationId: user.organizationId } })
     const patientCode = `PT${String(count + 1).padStart(5, "0")}`
     const patient = await db.patient.create({
@@ -55,23 +56,23 @@ export async function POST(req: NextRequest) {
         firstName: body.firstName,
         lastName: body.lastName,
         dob: body.dob ? new Date(body.dob) : null,
-        age: body.age ? Number(body.age) : null,
-        gender: body.gender,
-        phone: body.phone,
-        email: body.email,
-        address: body.address,
-        city: body.city,
-        state: body.state,
-        bloodGroup: body.bloodGroup,
-        emergencyContact: body.emergencyContact,
-        medicalHistory: body.medicalHistory,
-        allergies: body.allergies,
-        gstin: body.gstin,
+        age: body.age ?? null,
+        gender: body.gender ?? null,
+        phone: body.phone ?? null,
+        email: body.email ?? null,
+        address: body.address ?? null,
+        city: body.city ?? null,
+        state: body.state ?? null,
+        bloodGroup: body.bloodGroup ?? null,
+        emergencyContact: body.emergencyContact ?? null,
+        medicalHistory: body.medicalHistory ?? null,
+        allergies: body.allergies ?? null,
+        gstin: body.gstin ?? null,
         isCorporate: body.isCorporate || false,
-        corporateName: body.corporateName,
-        insuranceProvider: body.insuranceProvider,
-        insuranceId: body.insuranceId,
-        notes: body.notes,
+        corporateName: body.corporateName ?? null,
+        insuranceProvider: body.insuranceProvider ?? null,
+        insuranceId: body.insuranceId ?? null,
+        notes: body.notes ?? null,
       },
     })
     await logAudit({ organizationId: user.organizationId, userId: user.id, action: "CREATE", entity: "Patient", entityId: patient.id, details: `Registered patient ${patientCode}` })

@@ -26,13 +26,13 @@ export interface OrgInfo {
 interface AppState {
   session: SessionInfo | null
   organization: OrgInfo | null
-  demoUsers: { id: string; name: string; email: string; role: string }[]
+  branch: { id: string; name: string; code: string } | null
   view: string
   viewParam: string | null
   paletteOpen: boolean
   setSession: (s: SessionInfo | null) => void
   setOrganization: (o: OrgInfo | null) => void
-  setDemoUsers: (u: AppState["demoUsers"]) => void
+  setBranch: (b: AppState["branch"]) => void
   navigate: (view: string, param?: string | null) => void
   setPaletteOpen: (open: boolean) => void
   can: (permission: Permission) => boolean
@@ -41,13 +41,13 @@ interface AppState {
 export const useApp = create<AppState>((set, get) => ({
   session: null,
   organization: null,
-  demoUsers: [],
+  branch: null,
   view: "dashboard",
   viewParam: null,
   paletteOpen: false,
   setSession: (s) => set({ session: s }),
   setOrganization: (o) => set({ organization: o }),
-  setDemoUsers: (u) => set({ demoUsers: u }),
+  setBranch: (b) => set({ branch: b }),
   navigate: (view, param = null) => set({ view, viewParam: param, paletteOpen: false }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   can: (permission) => {

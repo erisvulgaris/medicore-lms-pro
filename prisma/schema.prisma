@@ -111,6 +111,7 @@ model User {
   reportsApproved Report[]
   paymentsReceived Payment[]
   auditLogs      AuditLog[]
+  sessions       Session[]
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -707,3 +708,21 @@ model Setting {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   @@unique([organizationId, key])
 }
+
+model Session {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  userId         String
+  organizationId String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  lastUsedAt     DateTime @default(now())
+  ipAddress      String?
+  userAgent      String?
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+}
+

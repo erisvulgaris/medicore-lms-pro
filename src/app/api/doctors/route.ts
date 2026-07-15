@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requirePermission, errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
+import { validateBody, doctorCreateSchema } from "@/lib/validation"
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermission("doctors.write")
-    const body = await req.json()
+    const body = await validateBody(req, doctorCreateSchema)
     const doctor = await db.doctor.create({
       data: {
         organizationId: user.organizationId,

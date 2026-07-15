@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { requirePermission, errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
 import { randomToken } from "@/lib/format"
+import { validateBody, orderCreateSchema } from "@/lib/validation"
 
 export async function GET(req: NextRequest) {
   try {
@@ -49,16 +50,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermission("orders.write")
-    const body = await req.json()
-    const { patientId, doctorId, testIds, priority, isHomeCollection, notes, discountPercent } = body as {
-      patientId: string
-      doctorId?: string
-      testIds: string[]
-      priority?: string
-      isHomeCollection?: boolean
-      notes?: string
-      discountPercent?: number
-    }
+    const body = await validateBody(req, orderCreateSchema)
+    const { patientId, doctorId, testIds, priority, isHomeCollection, notes, discountPercent } = body
 
     const tests = await db.test.findMany({ where: { id: { in: testIds }, organizationId: user.organizationId } })
     if (tests.length === 0) return errorResponse(new Error("No valid tests selected"))
