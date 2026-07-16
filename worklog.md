@@ -586,3 +586,62 @@ Stage Summary:
   * accounts@medicore.example | acco@6c547fe6 | ACCOUNTANT
 - GitHub repo: https://github.com/erisvulgaris/medicore-lms-pro (28 views, 41 API routes, lint clean)
 - Future changes: git add -A && git commit -m "..." && git push
+
+---
+Task ID: 9
+Agent: main (Z.ai Code) — recurring webDevReview round
+Task: Assess project status, QA, add user management + password change + rate limiting, push to GitHub.
+
+## Current Project Status
+- Production-ready multi-tenant Pathology LMS with real JWT auth (bcrypt), Zod validation, structured logging.
+- 28 views, 41 API routes (before this round), lint clean, server running.
+- Last round (Task 8): transformed from demo to production auth.
+- CREDENTIALS.md was missing (gitignored + removed during cleanup) — re-seeded to regenerate.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### QA Assessment
+- Re-seeded DB (CREDENTIALS.md was missing). Generated fresh credentials per role.
+- All 9 core APIs return 200 with auth token (dashboard, patients, orders, reports, invoices, analytics/tat, analytics/finance, analytics/commissions, home-collection).
+- Login API verified: correct credentials → JWT token; wrong password → 401.
+- Browser login screen renders (Email + Password + Sign in). Server OOMs during heavy dashboard compile in 4GB sandbox (known limitation, not a code bug).
+
+### New Features Added
+1. **User Management** (`src/app/api/users/route.ts` + `[id]/route.ts` + `user-management-view.tsx`):
+   - GET /api/users: list all users with branch info (admin only)
+   - POST /api/users: create user with bcrypt-hashed password, email uniqueness check, role assignment
+   - PATCH /api/users/[id]: update name/role/branch/phone/active, reset password (revokes all sessions)
+   - DELETE /api/users/[id]: soft-disable (cannot delete self, revokes sessions)
+   - View: stat cards (Total/Active/Disabled/Roles), search, user table with avatars, role badges, last-login time, active toggle (Switch), reset-password dialog (with generate button), disable confirmation, created-credentials dialog with copy button
+
+2. **Password Change** (`src/app/api/auth/change-password/route.ts`):
+   - POST /api/auth/change-password: validates current password, enforces new password min 8 chars, revokes all sessions after change
+   - Rate-limited: max 5 changes per hour per IP
+   - Change Password dialog added to user dropdown menu in app-shell
+
+3. **Rate Limiting** (`src/lib/rate-limit.ts`):
+   - In-memory rate limiter (Redis-ready for production multi-instance)
+   - Login: max 10 attempts per 15 min per IP → 429 response
+   - Password change: max 5 per hour per IP
+   - Auto-cleanup of expired entries every 60s
+   - Verified: 10 bad logins → 401, 11th → 429 (brute-force protection confirmed)
+
+### Verification Results
+- Users list: 10 users, 2 branches ✓
+- Create user: test@medicore.example created with password ✓
+- Change password: ok (sessions revoked) ✓
+- Rate limiting: 401×10 then 429 ✓
+- `bun run lint` → 0 errors ✓
+- 29 views, 43 API routes
+- Pushed to GitHub: https://github.com/erisvulgaris/medicore-lms-pro
+
+## Unresolved Issues / Risks / Next-Phase Recommendations
+- **4GB sandbox OOM**: dev server dies when compiling 2+ heavy recharts views in one session. Mitigated by lazy imports + one-view-per-session QA. Production (with more RAM) won't have this issue.
+- **In-memory rate limiter**: works for single-instance; for production multi-instance deployment, replace with Redis-backed limiter.
+- **No HTTPS enforcement**: production deployment should use a reverse proxy (Caddy/Nginx) with valid TLS certs.
+- **Next-phase candidates**: 
+  - Lab machine integration adapters (ASTM/HL7)
+  - Report template selector (multiple PDF templates)
+  - Technician productivity analytics
+  - Email/SMS notification providers (currently in-app only)
+  - Database backup/restore UI
