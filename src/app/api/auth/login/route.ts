@@ -1,14 +1,19 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { verifyPassword, createSession, getRequestInfo } from "@/lib/auth"
-import { errorResponse, validationError } from "@/lib/session"
+import { errorResponse } from "@/lib/session"
 import { logAudit } from "@/lib/audit"
+import { checkRateLimit, getRemainingAttempts } from "@/lib/rate-limit"
 import { z } from "zod"
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 })
+
+// Brute-force protection: max 10 login attempts per 15 minutes per IP
+const MAX_LOGIN_ATTEMPTS = 10
+const LOGIN_WINDOW_SECONDS = 900 // 15 minutes
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,8 +24,18 @@ export async function POST(req: NextRequest) {
     }
     const { email, password } = parsed.data
 
+    // Rate limit by IP
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown"
+    const rateKey = `login:${ip}`
+    if (!checkRateLimit(rateKey, MAX_LOGIN_ATTEMPTS, LOGIN_WINDOW_SECONDS)) {
+      const remaining = getRemainingAttempts(rateKey, MAX_LOGIN_ATTEMPTS)
+      return Response.json(
+        { error: `Too many login attempts. Please try again in ${Math.ceil(LOGIN_WINDOW_SECONDS / 60)} minutes.` },
+        { status: 429 }
+      )
+    }
+
     // Find user by email across all orgs (email is unique per org, but login is by email globally)
-    // SQLite doesn't support mode: "insensitive", so we fetch by exact email (emails are stored lowercase in seed)
     const user = await db.user.findFirst({
       where: { email: email.toLowerCase(), active: true },
       include: { organization: { select: { name: true, code: true, accentColor: true, logoUrl: true, city: true } } },
@@ -61,3 +76,4 @@ export async function POST(req: NextRequest) {
     return errorResponse(e)
   }
 }
+

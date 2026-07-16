@@ -32,6 +32,7 @@ const InventoryView = dynamic(() => import("@/components/views/inventory-view").
 const PurchasesView = dynamic(() => import("@/components/views/purchases-view").then(m => ({ default: m.PurchasesView })), { ssr: false })
 const DoctorsView = dynamic(() => import("@/components/views/doctors-view").then(m => ({ default: m.DoctorsView })), { ssr: false })
 const AuditView = dynamic(() => import("@/components/views/audit-view").then(m => ({ default: m.AuditView })), { ssr: false })
+const UserManagementView = dynamic(() => import("@/components/views/user-management-view").then(m => ({ default: m.UserManagementView })), { ssr: false })
 const SettingsView = dynamic(() => import("@/components/views/settings-view").then(m => ({ default: m.SettingsView })), { ssr: false })
 const VerifyView = dynamic(() => import("@/components/views/verify-view").then(m => ({ default: m.VerifyView })), { ssr: false })
 
@@ -100,6 +101,7 @@ function ViewRouter({ view }: { view: string }) {
     case "purchases": return <PurchasesView />
     case "doctors": return <DoctorsView />
     case "audit": return <AuditView />
+    case "user-management": return <UserManagementView />
     case "settings": return <SettingsView />
     default: return <DashboardView />
   }

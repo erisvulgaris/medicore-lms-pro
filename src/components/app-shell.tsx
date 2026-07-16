@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { CommandPalette } from "@/components/command-palette"
-import { Activity, Bell, Moon, Search, Sun, TestTube2, LogOut, Menu, ChevronDown, ShieldCheck, Loader2, AlertCircle } from "lucide-react"
+import { Activity, Bell, Moon, Search, Sun, TestTube2, LogOut, Menu, ChevronDown, ShieldCheck, Loader2, AlertCircle, KeyRound } from "lucide-react"
 import { initials, timeAgo } from "@/lib/format"
 import { toast } from "sonner"
 
@@ -30,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setMounted(true)
   }, [])
 
@@ -68,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     } catch {}
   }
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     if (session) loadNotifs()
     const h = () => session && loadNotifs()
     window.addEventListener("lms-auth-change", h)
@@ -82,6 +83,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setOrganization(null)
     setBranch(null)
     toast.success("Signed out")
+  }
+
+  const [pwOpen, setPwOpen] = useState(false)
+  const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "" })
+  const [pwLoading, setPwLoading] = useState(false)
+  const changePassword = async () => {
+    if (!pwForm.currentPassword || !pwForm.newPassword) { toast.error("Fill in both fields"); return }
+    if (pwForm.newPassword.length < 8) { toast.error("New password must be at least 8 characters"); return }
+    setPwLoading(true)
+    try {
+      await api.post("/api/auth/change-password", pwForm)
+      toast.success("Password changed. Please log in again.")
+      setPwOpen(false)
+      setPwForm({ currentPassword: "", newPassword: "" })
+      clearAuthToken()
+      setSession(null)
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setPwLoading(false)
+    }
   }
 
   const grouped = NAV_ITEMS.reduce<Record<string, typeof NAV_ITEMS>>((acc, item) => {
@@ -242,6 +264,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setPwOpen(true)}>
+                  <KeyRound className="mr-2 h-3.5 w-3.5" /> Change Password
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout} className="text-rose-600 focus:text-rose-600">
                   <LogOut className="mr-2 h-3.5 w-3.5" /> Sign out
                 </DropdownMenuItem>
@@ -265,6 +290,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <CommandPalette />
+
+      {/* Change Password Dialog */}
+      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Change Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">For security, you'll be logged out after changing your password.</p>
+            <div>
+              <Label className="mb-1 block text-xs">Current Password</Label>
+              <Input type="password" value={pwForm.currentPassword} onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })} />
+            </div>
+            <div>
+              <Label className="mb-1 block text-xs">New Password <span className="text-muted-foreground">(min 8 chars)</span></Label>
+              <Input type="password" value={pwForm.newPassword} onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwOpen(false)}>Cancel</Button>
+            <Button onClick={changePassword} disabled={pwLoading}>{pwLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Change Password</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
