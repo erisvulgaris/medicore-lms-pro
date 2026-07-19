@@ -645,3 +645,56 @@ Task: Assess project status, QA, add user management + password change + rate li
   - Technician productivity analytics
   - Email/SMS notification providers (currently in-app only)
   - Database backup/restore UI
+
+---
+Task ID: 10
+Agent: main (Z.ai Code) — recurring webDevReview round
+
+## Current Project Status
+- Production-ready multi-tenant Pathology LMS with JWT auth (bcrypt), Zod validation, rate limiting, structured logging.
+- 29 views, 43 API routes (before this round), lint clean, server running.
+- Last round (Task 9): added user management, password change, rate limiting.
+- CREDENTIALS.md was missing again (gitignored) — re-seeded to regenerate fresh credentials.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### QA Assessment
+- Re-seeded DB with fresh credentials (owner: org_@b4179681).
+- All 10 core APIs return 200 with auth token.
+- Login verified: correct credentials → JWT; wrong password → 401.
+- Browser login screen renders. Server OOMs during heavy view compile in 4GB sandbox (known limitation).
+
+### New Features Added
+1. **Technician Productivity Analytics** (`src/app/api/analytics/technicians/route.ts` + `technicians-view.tsx`):
+   - API: per-technician results entered, samples collected, reports approved, critical/abnormal flags, department workload distribution, daily trend.
+   - View: 4 stat cards (Active Staff, Results Entered, Samples Collected, Reports Approved), critical/abnormal flag banners, daily trend area chart, department workload horizontal bar chart, staff performance table with color-coded metrics + totals row, CSV export, range selector (7/30/90/365 days).
+   - Verified: 3 active staff (Rahul Kumar - 42 results, Dr. Vikram Singh - 8 reports, Manoj Pillai - 32 samples), 6 critical flags.
+
+2. **Notification Provider Interface** (`src/lib/notifications.ts`):
+   - Multi-channel: in-app (always on, DB-backed), email (console provider for dev, production-ready for SendGrid/SES), SMS (console provider, Twilio-ready).
+   - Helper functions: `notifyCriticalResult()`, `notifyReportApproved()`, `notifyPaymentReceived()`.
+   - Auto-fires critical value notification when a result with CRITICAL_LOW/CRITICAL_HIGH flag is entered (wired into `/api/results` POST).
+   - Configurable via env vars: `EMAIL_PROVIDER`, `SMS_PROVIDER`.
+
+3. **Report Template Selector** (`report-detail.tsx`):
+   - 3 professional templates: Classic (standard border), Modern (emerald gradient header with white text), Compact (minimal padding, bold accent border).
+   - Template selector dropdown in the no-print toolbar.
+   - All templates share the same data but render with different visual styles for print/PDF.
+
+### Verification Results
+- Technicians API: 200, returns 3 staff with real productivity data ✓
+- Dashboard API: 200 ✓
+- `bun run lint` → 0 errors ✓
+- 30 views, 44 API routes
+- Pushed to GitHub: https://github.com/erisvulgaris/medicore-lms-pro
+
+## Unresolved Issues / Risks / Next-Phase Recommendations
+- **4GB sandbox OOM**: dev server dies when compiling 2+ heavy views (recharts) in one session. Mitigated by lazy imports. Production (more RAM) won't have this issue.
+- **In-memory rate limiter**: works for single-instance; production multi-instance needs Redis.
+- **Notification providers**: console-only for dev; production needs real SendGrid/Twilio credentials configured via env vars.
+- **Next-phase candidates**:
+  - Lab machine integration adapters (ASTM/HL7 serial interface)
+  - Database backup/restore UI
+  - Email/SMS template editor in settings
+  - Audit log export + filtering by date range
+  - Patient self-registration portal (public booking)
