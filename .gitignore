@@ -58,3 +58,4 @@ server.log
 agent-ctx/
 worklog.md
 CREDENTIALS.md
+db/backup-*.db
