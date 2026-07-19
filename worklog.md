@@ -698,3 +698,65 @@ Agent: main (Z.ai Code) — recurring webDevReview round
   - Email/SMS template editor in settings
   - Audit log export + filtering by date range
   - Patient self-registration portal (public booking)
+
+---
+Task ID: 11
+Agent: main (Z.ai Code) — recurring webDevReview round
+
+## Current Project Status
+- Production-ready multi-tenant Pathology LMS with JWT auth (bcrypt), Zod validation, rate limiting, structured logging, notification provider interface.
+- 30 views, 44 API routes (before this round), lint clean, server running.
+- Last round (Task 10): added technician productivity analytics, notification provider, report templates.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### QA Assessment
+- Re-seeded DB with fresh credentials (owner: org_@b4179681).
+- All 9 core APIs return 200 with auth token.
+- Login verified: correct credentials → JWT; wrong password → 401.
+- No bugs found in existing code.
+
+### New Features Added
+1. **Public Patient Self-Registration** (`src/app/api/public/register/route.ts` + `public-register-view.tsx`):
+   - No-auth public endpoint: creates patient in first org + optional appointment.
+   - Duplicate phone detection (409 with existing patient code).
+   - Rate-limited: max 5 registrations per hour per IP.
+   - Success screen with patient code + appointment token + date.
+   - Accessible via `?register=1` query param (handled in page.tsx).
+   - "New patient? Register here →" link on login screen.
+   - Verified: registered PT00041 with token #1; duplicate phone correctly rejected.
+
+2. **Enhanced Audit API** (`src/app/api/audit/route.ts`):
+   - Date-range filtering (startDate/endDate params).
+   - Entity + action + userId filtering.
+   - Returns unique entities + actions lists for filter dropdowns.
+   - Returns totalCount for pagination.
+   - Verified: filtered by entity=Patient → 1 log, totalCount=1, entities [Patient, User].
+
+3. **Database Backup API** (`src/app/api/admin/backup/route.ts`):
+   - GET: lists available backups + table row counts (16 tables) + DB path.
+   - POST: creates timestamped SQLite file backup (copy), audit-logged.
+   - Admin-only (settings.manage permission).
+   - Verified: created backup-2026-07-19T18-02-12-589Z.db (577KB), 41 patients, 32 orders.
+
+### Verification Results
+- Public register: 201 (new patient PT00041 + token #1) ✓
+- Duplicate register: 409 (existing patient code) ✓
+- Audit filtering: 200, returns filtered logs + entities/actions ✓
+- Backup list: 200, returns table stats + backup list ✓
+- Backup create: 201, creates .db file ✓
+- Browser: public register screen renders with all fields ✓
+- `bun run lint` → 0 errors ✓
+- 31 views, 46 API routes
+- Pushed to GitHub: https://github.com/erisvulgaris/medicore-lms-pro
+
+## Unresolved Issues / Risks / Next-Phase Recommendations
+- **4GB sandbox OOM**: dev server dies when compiling 2+ heavy views in one session. Mitigated by lazy imports. Production won't have this.
+- **Backup files**: stored locally in db/ dir; production should use cloud storage (S3/GCS) for offsite backups.
+- **Public registration**: currently uses first org; production should route by subdomain or org code.
+- **Next-phase candidates**:
+  - Lab machine integration adapters (ASTM/HL7 serial interface)
+  - Email/SMS template editor in settings
+  - Audit log CSV export button in the view
+  - Backup restore endpoint (restore from .db file)
+  - Patient appointment confirmation/cancellation via SMS link
