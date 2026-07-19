@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view", group: "Overview" },
   { key: "quick-lab", label: "Quick Lab", icon: Zap, permission: "dashboard.view", group: "Overview" },
   { key: "analytics", label: "Lab Analytics", icon: Gauge, permission: "dashboard.view", group: "Overview" },
+  { key: "technicians", label: "Technician Productivity", icon: Microscope, permission: "dashboard.view", group: "Overview" },
   { key: "patients", label: "Patients", icon: Users, permission: "patients.read", group: "Clinical" },
   { key: "patient-portal", label: "Patient Portal", icon: UserCircle, permission: "patients.read", group: "Clinical" },
   { key: "appointments", label: "Appointments", icon: CalendarClock, permission: "appointments.read", group: "Clinical" },

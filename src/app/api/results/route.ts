@@ -61,6 +61,13 @@ export async function POST(req: NextRequest) {
     await db.orderTest.update({ where: { id: orderTestId }, data: { status: "COMPLETED" } })
 
     await logAudit({ organizationId: user.organizationId, userId: user.id, action: "RESULT_ENTERED", entity: "Result", entityId: result.id, details: `${ot.test.shortName}: ${value} (${flag})` })
+
+    // Fire critical value notification if flag is critical
+    if (flag === "CRITICAL_LOW" || flag === "CRITICAL_HIGH") {
+      const { notifyCriticalResult } = await import("@/lib/notifications")
+      await notifyCriticalResult(user.organizationId, `${ot.order.patient.firstName} ${ot.order.patient.lastName}`, ot.test.shortName || ot.test.name, value, flag)
+    }
+
     return Response.json(result, { status: 201 })
   } catch (e) {
     return errorResponse(e)

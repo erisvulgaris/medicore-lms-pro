@@ -10,6 +10,7 @@ import { AppShell } from "@/components/app-shell"
 const DashboardView = dynamic(() => import("@/components/views/dashboard-view").then(m => ({ default: m.DashboardView })), { ssr: false })
 const QuickLabView = dynamic(() => import("@/components/views/quick-lab-view").then(m => ({ default: m.QuickLabView })), { ssr: false })
 const AnalyticsView = dynamic(() => import("@/components/views/analytics-view").then(m => ({ default: m.AnalyticsView })), { ssr: false })
+const TechniciansView = dynamic(() => import("@/components/views/technicians-view").then(m => ({ default: m.TechniciansView })), { ssr: false })
 const FinanceView = dynamic(() => import("@/components/views/finance-view").then(m => ({ default: m.FinanceView })), { ssr: false })
 const CommissionsView = dynamic(() => import("@/components/views/commissions-view").then(m => ({ default: m.CommissionsView })), { ssr: false })
 const HomeCollectionView = dynamic(() => import("@/components/views/home-collection-view").then(m => ({ default: m.HomeCollectionView })), { ssr: false })
@@ -79,6 +80,7 @@ function ViewRouter({ view }: { view: string }) {
     case "dashboard": return <DashboardView />
     case "quick-lab": return <QuickLabView />
     case "analytics": return <AnalyticsView />
+    case "technicians": return <TechniciansView />
     case "finance": return <FinanceView />
     case "commissions": return <CommissionsView />
     case "home-collection": return <HomeCollectionView />

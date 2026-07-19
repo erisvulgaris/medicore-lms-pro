@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   ArrowLeft,
   Printer,
@@ -98,6 +99,7 @@ export function ReportDetail() {
   const qc = useQueryClient()
   const [remarks, setRemarks] = useState("")
   const [approving, setApproving] = useState(false)
+  const [template, setTemplate] = useState<"classic" | "modern" | "compact">("classic")
 
   const { data, isLoading } = useQuery({
     queryKey: ["report", id],
@@ -156,6 +158,14 @@ export function ReportDetail() {
           <ArrowLeft className="mr-1.5 h-4 w-4" /> Back to reports
         </Button>
         <div className="flex flex-wrap items-center gap-2">
+          <Select value={template} onValueChange={(v) => setTemplate(v as any)}>
+            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="classic">Classic Template</SelectItem>
+              <SelectItem value="modern">Modern Template</SelectItem>
+              <SelectItem value="compact">Compact Template</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => window.print()}>
             <Printer className="mr-1.5 h-4 w-4" /> Print / Save PDF
           </Button>
@@ -190,30 +200,30 @@ export function ReportDetail() {
       <div className="mx-auto max-w-[820px]">
         <div className="bg-white text-black shadow-sm ring-1 ring-border/60 rounded-xl">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6 sm:p-8">
+          <div className={cn("flex items-start justify-between gap-4 p-6 sm:p-8", template === "classic" && "border-b border-slate-200", template === "modern" && "bg-gradient-to-r from-emerald-600 to-teal-600 text-white", template === "compact" && "border-b-2 border-emerald-600")}>
             <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-600">
+              <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-lg", template === "modern" ? "bg-white/20" : "bg-emerald-600")}>
                 <TestTube className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold leading-tight text-slate-900">
+                <h1 className={cn("text-lg font-bold leading-tight", template === "modern" ? "text-white" : "text-slate-900")}>
                   {organization?.legalName || organization?.name || "Pathology Laboratory"}
                 </h1>
-                {organization?.address && <p className="mt-0.5 text-xs text-slate-600">{organization.address}</p>}
-                <p className="text-xs text-slate-600">
+                {organization?.address && <p className={cn("mt-0.5 text-xs", template === "modern" ? "text-emerald-50" : "text-slate-600")}>{organization.address}</p>}
+                <p className={cn("text-xs", template === "modern" ? "text-emerald-50" : "text-slate-600")}>
                   {[organization?.city, organization?.state, organization?.postalCode].filter(Boolean).join(", ")}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-600">
+                <p className={cn("mt-0.5 text-xs", template === "modern" ? "text-emerald-50" : "text-slate-600")}>
                   {organization?.phone && <span>Phone: {organization.phone}</span>}
                   {organization?.email && <span className="ml-2">· {organization.email}</span>}
                 </p>
-                {organization?.gstin && <p className="text-xs text-slate-600">GSTIN: {organization.gstin}</p>}
+                {organization?.gstin && <p className={cn("text-xs", template === "modern" ? "text-emerald-50" : "text-slate-600")}>GSTIN: {organization.gstin}</p>}
               </div>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">Laboratory Report</p>
-              <p className="mt-1 font-mono text-sm font-semibold text-slate-900">{report.reportCode}</p>
-              <p className="mt-0.5 text-xs text-slate-600">Issued: {formatDate(report.approvedAt || report.createdAt)}</p>
+              <p className={cn("text-[10px] font-semibold uppercase tracking-wider", template === "modern" ? "text-emerald-50" : "text-emerald-700")}>Laboratory Report</p>
+              <p className={cn("mt-1 font-mono text-sm font-semibold", template === "modern" ? "text-white" : "text-slate-900")}>{report.reportCode}</p>
+              <p className={cn("mt-0.5 text-xs", template === "modern" ? "text-emerald-50" : "text-slate-600")}>Issued: {formatDate(report.approvedAt || report.createdAt)}</p>
               <span className={cn("mt-1.5 inline-block rounded px-2 py-0.5 text-[10px] font-medium", status.className)}>
                 {status.label}
               </span>
@@ -221,7 +231,7 @@ export function ReportDetail() {
           </div>
 
           {/* Patient & Order info */}
-          <div className="grid gap-4 border-b border-slate-200 p-6 sm:grid-cols-2 sm:p-8">
+          <div className={cn("grid gap-4 p-6 sm:grid-cols-2 sm:p-8", template !== "compact" && "border-b border-slate-200", template === "compact" && "py-4")}>
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Patient Details</p>
               <div className="space-y-1 text-sm text-slate-800">
