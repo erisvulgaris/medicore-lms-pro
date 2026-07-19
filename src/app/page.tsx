@@ -36,6 +36,7 @@ const AuditView = dynamic(() => import("@/components/views/audit-view").then(m =
 const UserManagementView = dynamic(() => import("@/components/views/user-management-view").then(m => ({ default: m.UserManagementView })), { ssr: false })
 const SettingsView = dynamic(() => import("@/components/views/settings-view").then(m => ({ default: m.SettingsView })), { ssr: false })
 const VerifyView = dynamic(() => import("@/components/views/verify-view").then(m => ({ default: m.VerifyView })), { ssr: false })
+const PublicRegisterView = dynamic(() => import("@/components/views/public-register-view").then(m => ({ default: m.PublicRegisterView })), { ssr: false })
 
 function Loading() {
   return (
@@ -48,12 +49,16 @@ function Loading() {
 export default function Home() {
   const { view, session } = useApp()
   const [verifyToken, setVerifyToken] = useState<string | null>(null)
+  const [showRegister, setShowRegister] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const token = params.get("verify")
+    const reg = params.get("register")
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (token) setVerifyToken(token)
+     
+    if (reg === "1") setShowRegister(true)
   }, [])
 
   if (verifyToken) {
@@ -62,6 +67,10 @@ export default function Home() {
         <VerifyView token={verifyToken} />
       </div>
     )
+  }
+
+  if (showRegister) {
+    return <PublicRegisterView />
   }
 
   if (!session) {

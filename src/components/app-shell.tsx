@@ -377,9 +377,15 @@ function LoginScreen() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Secure login · Passwords hashed with bcrypt · Token-based sessions
-        </p>
+        <div className="mt-6 flex flex-col items-center gap-2 text-xs text-muted-foreground">
+          <p>Secure login · Passwords hashed with bcrypt · Token-based sessions</p>
+          <button
+            onClick={() => { window.location.href = "/?register=1" }}
+            className="text-primary hover:underline"
+          >
+            New patient? Register here →
+          </button>
+        </div>
       </div>
     </div>
   )
