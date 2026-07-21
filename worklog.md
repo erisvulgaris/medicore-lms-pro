@@ -879,3 +879,77 @@ Task: Build Lab Owner Dashboard + Marketplace Admin Panel + search API for the m
   - Elasticsearch for full-text search with typo tolerance
   - PWA + push notifications (FCM)
   - CSV import/export for tests and pricing (bulk operations)
+
+---
+Task ID: 14
+Agent: main (Z.ai Code)
+Task: Massive marketplace overhaul — rich seed data, fix hardcoded ratings, rebuild UI to 10/10, set up continuous improvement cron.
+
+## Current Project Status
+- User feedback: marketplace was 1/10 — hardcoded ratings, minimal data (3 labs, 1 order), basic UI.
+- 38 views, 56 API routes, lint clean.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### New Features Added
+
+1. **Rich Marketplace Seed** (`prisma/seed-marketplace.ts`):
+   - 15 labs across 5 cities (Bengaluru, Mumbai, Delhi, Hyderabad, Chennai)
+   - 123 real reviews (5-10 per lab, realistic titles + comments)
+   - 25 marketplace orders (varied statuses, home collection, OTPs)
+   - 162 tests (22 test catalog × multiple orgs with price variation)
+   - 5 coupons (WELCOME10, FLAT100, HEALTH20, FIRST50, MONSOON15)
+   - All ratings COMPUTED from reviews (not hardcoded)
+   - Real geolocation data (lat/lng) for each lab
+   - Realistic descriptions, NABL cert numbers, phone numbers, hours
+
+2. **Enhanced Marketplace Labs API** (`/api/marketplace/labs`):
+   - Real rating computation from reviews (live, not stored)
+   - openNow filter (checks current time vs open/close hours)
+   - featured filter
+   - order counts per lab
+   - cities list for filter dropdown
+   - Proper sorting: rating, distance, orders (popularity), name
+   - Proper distance calculation with haversine
+   - Structured response (no nested reviews in output)
+
+3. **Premium Marketplace Discover UI** (`marketplace-discover-view.tsx`):
+   - Hero header with emerald gradient + grid pattern
+   - Large search bar + city dropdown + Near me button
+   - Sticky filter bar: sort dropdown, NABL/Home Collection/Open Now/Featured chips
+   - Clear filters button with active count
+   - Map toggle (list/map view)
+   - Premium lab cards: rank badges (#1/#2/#3 with Award icon), Featured stars,
+     verified checkmarks, color-coded rating pills (emerald/amber/rose based on score),
+     open/closed status badges, order counts, facility icons (parking/wheelchair/emergency),
+     distance display, skeleton loading states
+   - OpenStreetMap panel with lab pins list
+   - Footer with stats
+
+4. **Recurring Cron Job** (job ID 284267, every 30 min):
+   - Continuous QA via agent-browser
+   - Auto-fix bugs, propose new features
+   - Push improvements to GitHub
+   - Goal: reach 10/10 in UI UX business logic
+
+### Verification Results
+- Seed: 15 labs, 123 reviews, 25 orders, 162 tests, 5 coupons ✓
+- Labs API: returns real ratings (4.0, 4.0, 3.9...), review counts, order counts, cities ✓
+- Browser: premium discover UI renders with hero, search, filters, ranked lab cards ✓
+- `bun run lint` → 0 errors ✓
+- 38 views, 56 API routes
+- Pushed to GitHub: https://github.com/erisvulgaris/medicore-lms-pro
+- Cron job 284267 created for continuous improvement
+
+## Unresolved Issues / Risks / Next-Phase Recommendations
+- **4GB sandbox OOM**: heavy views still OOM during browser QA. APIs verified via curl.
+- **Lab detail + cart UI**: still need the same premium rebuild treatment (next cron rounds)
+- **Online payments**: payment gateway stub remains
+- **Search**: SQL LIKE-based; needs Elasticsearch for production scale
+- **Next-phase candidates** (for cron rounds):
+  - Rebuild lab detail UI to Practo-grade (gallery, services, booking flow)
+  - Rebuild cart/checkout UI (multi-step, address autocomplete, slot grid)
+  - Rebuild order tracking UI (live status timeline, OTP display)
+  - Pickup agent dashboard + route planning
+  - Payment gateway integration (Razorpay)
+  - Elasticsearch/Meilisearch for search
