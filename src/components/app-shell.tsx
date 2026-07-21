@@ -385,6 +385,12 @@ function LoginScreen() {
           >
             New patient? Register here →
           </button>
+          <button
+            onClick={() => { window.location.href = "/?marketplace=1" }}
+            className="text-primary hover:underline"
+          >
+            🏪 Browse Marketplace →
+          </button>
         </div>
       </div>
     </div>

@@ -37,6 +37,11 @@ const UserManagementView = dynamic(() => import("@/components/views/user-managem
 const SettingsView = dynamic(() => import("@/components/views/settings-view").then(m => ({ default: m.SettingsView })), { ssr: false })
 const VerifyView = dynamic(() => import("@/components/views/verify-view").then(m => ({ default: m.VerifyView })), { ssr: false })
 const PublicRegisterView = dynamic(() => import("@/components/views/public-register-view").then(m => ({ default: m.PublicRegisterView })), { ssr: false })
+const MarketplaceDiscoverView = dynamic(() => import("@/components/views/marketplace-discover-view").then(m => ({ default: m.MarketplaceDiscoverView })), { ssr: false })
+const MarketplaceLabDetailView = dynamic(() => import("@/components/views/marketplace-lab-detail-view").then(m => ({ default: m.MarketplaceLabDetailView })), { ssr: false })
+const MarketplaceCartView = dynamic(() => import("@/components/views/marketplace-cart-view").then(m => ({ default: m.MarketplaceCartView })), { ssr: false })
+const MarketplaceOrdersView = dynamic(() => import("@/components/views/marketplace-orders-view").then(m => ({ default: m.MarketplaceOrdersView })), { ssr: false })
+const FeatureFlagsView = dynamic(() => import("@/components/views/feature-flags-view").then(m => ({ default: m.FeatureFlagsView })), { ssr: false })
 
 function Loading() {
   return (
@@ -50,15 +55,23 @@ export default function Home() {
   const { view, session } = useApp()
   const [verifyToken, setVerifyToken] = useState<string | null>(null)
   const [showRegister, setShowRegister] = useState(false)
+  const [marketplace, setMarketplace] = useState<string | null>(null)
+  const [marketplaceSlug, setMarketplaceSlug] = useState<string | null>(null)
+  const [marketplaceSession, setMarketplaceSession] = useState<string>("")
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const token = params.get("verify")
     const reg = params.get("register")
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const mp = params.get("marketplace")
+    const slug = params.get("slug")
+    const sid = params.get("sessionId")
+     
     if (token) setVerifyToken(token)
      
     if (reg === "1") setShowRegister(true)
+     
+    if (mp) { setMarketplace(mp); setMarketplaceSlug(slug); setMarketplaceSession(sid || "") }
   }, [])
 
   if (verifyToken) {
@@ -72,6 +85,11 @@ export default function Home() {
   if (showRegister) {
     return <PublicRegisterView />
   }
+
+  if (marketplace === "1") return <MarketplaceDiscoverView />
+  if (marketplace === "lab" && marketplaceSlug) return <MarketplaceLabDetailView slug={marketplaceSlug} />
+  if (marketplace === "cart") return <MarketplaceCartView sessionId={marketplaceSession || `session-${Date.now()}`} />
+  if (marketplace === "orders") return <MarketplaceOrdersView sessionId={marketplaceSession} />
 
   if (!session) {
     return <AppShell><div /></AppShell>
@@ -113,6 +131,7 @@ function ViewRouter({ view }: { view: string }) {
     case "doctors": return <DoctorsView />
     case "audit": return <AuditView />
     case "user-management": return <UserManagementView />
+    case "feature-flags": return <FeatureFlagsView />
     case "settings": return <SettingsView />
     default: return <DashboardView />
   }

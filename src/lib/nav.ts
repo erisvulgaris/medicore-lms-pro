@@ -37,5 +37,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "commissions", label: "Commission Reports", icon: TrendingUp, permission: "doctors.read", group: "Directory" },
   { key: "audit", label: "Audit Log", icon: ScrollText, permission: "audit.view", group: "System" },
   { key: "user-management", label: "User Management", icon: Users, permission: "users.manage", group: "System" },
+  { key: "feature-flags", label: "Feature Flags", icon: Settings, permission: "settings.manage", group: "System" },
   { key: "settings", label: "Settings", icon: Settings, permission: "settings.manage", group: "System" },
 ]

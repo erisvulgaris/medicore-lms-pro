@@ -175,3 +175,50 @@ Open-source. Free to use, modify, and distribute.
 ## 🤝 Contributing
 
 This is an open-source project. Contributions welcome — please ensure all changes pass `bun run lint` and maintain multi-tenant isolation.
+
+## 🏪 Marketplace Module (Optional — Feature Flag Controlled)
+
+The platform includes an optional **healthcare marketplace** (like Zomato/Swiggy for pathology labs) that can be enabled/disabled instantly via Feature Flags — no code changes required.
+
+### Feature Flags
+Super Admin controls marketplace features from **Settings → Feature Flags**:
+- `marketplace` — Enable/disable the entire public marketplace
+- `home_collection` — Allow home sample collection
+- `online_payments` — Accept online payments (gateway integration ready)
+- `cod` — Cash on Delivery / Cash on Collection
+- `pickup_system` — Pickup agent assignment & logistics
+- `referral_program` — Customer referral rewards
+- `dynamic_pricing` — Time/demand-based pricing rules
+- `maintenance_mode` — Block ordering during maintenance
+
+When `marketplace` is OFF: all marketplace APIs return 403, public routes are hidden, only the staff LMS remains accessible.
+
+### Marketplace Public Routes
+- `/?marketplace=1` — Discover nearby labs (with OpenStreetMap, filters, ratings)
+- `/?marketplace=lab&slug=medicore-diagnostics` — Lab detail (tests, profiles, packages, reviews, map)
+- `/?marketplace=cart&sessionId=X` — Shopping cart + checkout
+- `/?marketplace=orders&sessionId=X` — Order history
+
+### Marketplace APIs
+- `GET /api/marketplace` — Check if marketplace is enabled
+- `GET /api/marketplace/labs` — List labs (with filters: q, city, lat/lng, radius, sort, nabl, homeCollection)
+- `GET /api/marketplace/labs/[slug]` — Lab detail with tests, profiles, packages, reviews
+- `POST/GET/DELETE /api/marketplace/cart` — Cart management (session-based, single-lab cart)
+- `POST/GET /api/marketplace/orders` — Place order (with coupon, home collection, OTP) + order history
+- `POST/GET /api/marketplace/reviews` — Submit/list reviews (auto-updates lab rating)
+- `GET/PATCH /api/feature-flags` — Admin feature flag management
+
+### Marketplace Data Models
+- `MarketplaceLab` — Public lab profile (NABL, hours, home collection, geo, ratings, facilities)
+- `LabReview` — Patient reviews with photos, moderation
+- `Cart` / `CartItem` — Session-based shopping cart
+- `MarketplaceOrder` — Full order lifecycle (PLACED → ASSIGNED → COLLECTED → IN_LAB → TESTING → COMPLETED → DELIVERED)
+- `Coupon` — Discount codes (PERCENT/FLAT, min order, max discount, usage limits)
+- `FeatureFlag` — DB-backed feature toggles
+
+### Order Flow
+```
+Search → Compare → Select Lab → Add Tests → Checkout → Choose Address
+→ Select Slot → Pay (COD/Online) → Pickup Assigned → Sample Collected
+→ Delivered to Lab → Testing → Report Uploaded → Customer Notified
+```

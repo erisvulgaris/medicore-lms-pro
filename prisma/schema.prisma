@@ -53,6 +53,7 @@ model Organization {
   auditLogs   AuditLog[]
   notifications Notification[]
   settings    Setting[]
+  marketplaceLab MarketplaceLab?
 }
 
 model Branch {
@@ -724,5 +725,160 @@ model Session {
 
   @@index([userId])
   @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Marketplace (optional module — controlled by FeatureFlag)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique // marketplace, home_collection, online_payments, cod, etc.
+  label       String
+  description String?
+  enabled     Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
+
+model MarketplaceLab {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  slug            String   @unique
+  displayName     String
+  description     String?
+  logoUrl         String?
+  coverUrl        String?
+  galleryUrls     String?  // JSON array of image URLs
+  address         String
+  city            String
+  state           String
+  postalCode      String
+  latitude        Float?
+  longitude       Float?
+  phone           String
+  whatsapp        String?
+  email           String?
+  website         String?
+  nablCertified   Boolean  @default(false)
+  nablCertNumber  String?
+  gstin           String?
+  licenseNumber   String?
+  openTime        String?  // e.g. "07:00"
+  closeTime       String?  // e.g. "22:00"
+  open24x7        Boolean  @default(false)
+  homeCollection  Boolean  @default(true)
+  homeCollectionFee Float  @default(0)
+  homeCollectionRadius Float @default(10) // km
+  parking         Boolean  @default(false)
+  wheelchairAccess Boolean @default(false)
+  emergencyService Boolean @default(false)
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+  active          Boolean  @default(true)
+  verified        Boolean  @default(false)
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reviews         LabReview[]
+  cartItems       CartItem[]
+  marketplaceOrders MarketplaceOrder[]
+}
+
+model LabReview {
+  id           String   @id @default(cuid())
+  labId        String
+  patientName  String
+  patientPhone String?
+  rating       Int      // 1-5
+  title        String?
+  comment      String?
+  photoUrls    String?  // JSON array
+  verified     Boolean  @default(false)
+  reported     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lab          MarketplaceLab @relation(fields: [labId], references: [id], onDelete: Cascade)
+}
+
+model Cart {
+  id           String   @id @default(cuid())
+  sessionId    String   @unique // anonymous cart by session
+  labId        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        CartItem[]
+}
+
+model CartItem {
+  id           String   @id @default(cuid())
+  cartId       String
+  labId        String
+  testId       String?
+  testName     String
+  testCode     String?
+  price        Float
+  homeCollection Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  cart         Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  lab          MarketplaceLab @relation(fields: [labId], references: [id], onDelete: Cascade)
+}
+
+model MarketplaceOrder {
+  id              String   @id @default(cuid())
+  orderCode       String   @unique
+  labId           String
+  sessionId       String
+  patientName     String
+  patientPhone    String
+  patientEmail    String?
+  patientAge      Int?
+  patientGender   String?
+  address         String
+  city            String
+  postalCode      String?
+  latitude        Float?
+  longitude       Float?
+  preferredDate   DateTime?
+  timeSlot        String?
+  homeCollection  Boolean  @default(false)
+  homeCollectionFee Float  @default(0)
+  testsJson       String   // JSON array of {testName, testCode, price}
+  subtotal        Float
+  discount        Float    @default(0)
+  couponCode      String?
+  taxAmount       Float    @default(0)
+  platformFee     Float    @default(0)
+  totalAmount     Float
+  paymentMode     String   @default("COD") // COD, ONLINE
+  paymentStatus   String   @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  status          String   @default("PLACED") // PLACED, ASSIGNED, COLLECTED, IN_LAB, TESTING, COMPLETED, DELIVERED, CANCELLED
+  pickupAgentId   String?
+  pickupOtp       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  lab             MarketplaceLab @relation(fields: [labId], references: [id], onDelete: Cascade)
+}
+
+model Coupon {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  description  String?
+  discountType String   @default("PERCENT") // PERCENT, FLAT
+  discountValue Float
+  minOrder     Float    @default(0)
+  maxDiscount  Float    @default(0)
+  active       Boolean  @default(true)
+  validFrom    DateTime
+  validTo      DateTime?
+  usageLimit   Int      @default(0) // 0 = unlimited
+  usedCount    Int      @default(0)
+  createdAt    DateTime @default(now())
 }
 

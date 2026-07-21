@@ -460,6 +460,178 @@ async function main() {
   await db.setting.create({ data: { organizationId: org.id, key: "billing.gstEnabled", value: "true" } })
   await db.setting.create({ data: { organizationId: org.id, key: "verification.baseUrl", value: "/verify" } })
 
+  // ── Feature Flags ──
+  const flags = [
+    { key: "marketplace", label: "Marketplace", description: "Enable the public marketplace", enabled: true },
+    { key: "home_collection", label: "Home Collection", description: "Allow home sample collection", enabled: true },
+    { key: "online_payments", label: "Online Payments", description: "Accept online payments", enabled: false },
+    { key: "cod", label: "Cash on Delivery", description: "Allow cash payment", enabled: true },
+    { key: "pickup_system", label: "Pickup System", description: "Pickup agent assignment", enabled: true },
+    { key: "referral_program", label: "Referral Program", description: "Customer referral rewards", enabled: false },
+    { key: "dynamic_pricing", label: "Dynamic Pricing", description: "Time-based pricing", enabled: false },
+    { key: "maintenance_mode", label: "Maintenance Mode", description: "Block ordering", enabled: false },
+  ]
+  for (const f of flags) {
+    await db.featureFlag.upsert({ where: { key: f.key }, update: { enabled: f.enabled }, create: f })
+  }
+
+  // ── Marketplace Lab (publish the org as a marketplace lab) ──
+  const lab = await db.marketplaceLab.upsert({
+    where: { slug: "medicore-diagnostics" },
+    update: {},
+    create: {
+      organizationId: org.id,
+      slug: "medicore-diagnostics",
+      displayName: "MediCore Diagnostics",
+      description: "NABL-accredited multi-specialty diagnostic laboratory offering 500+ tests with state-of-the-art equipment. Trusted by 50,000+ patients.",
+      address: "204, Health Avenue, MG Road",
+      city: "Bengaluru",
+      state: "Karnataka",
+      postalCode: "560001",
+      latitude: 12.9756,
+      longitude: 77.6066,
+      phone: "+91 80 4000 1000",
+      whatsapp: "+91 98765 43210",
+      email: "info@medicore.example",
+      website: "https://medicore.example",
+      nablCertified: true,
+      nablCertNumber: "NABL-MC-2019-1234",
+      gstin: "29ABCDE1234F1Z5",
+      licenseNumber: "KAR-LAB-2019-4567",
+      openTime: "06:30",
+      closeTime: "21:00",
+      homeCollection: true,
+      homeCollectionFee: 50,
+      homeCollectionRadius: 15,
+      parking: true,
+      wheelchairAccess: true,
+      emergencyService: true,
+      verified: true,
+      featured: true,
+      rating: 4.6,
+      reviewCount: 3,
+    },
+  })
+
+  // Add a second demo lab (separate org)
+  const org2 = await db.organization.upsert({
+    where: { code: "LIFELAB" },
+    update: {},
+    create: {
+      name: "LifeLab Diagnostics",
+      legalName: "LifeLab Diagnostics Pvt. Ltd.",
+      code: "LIFELAB",
+      email: "info@lifelab.example",
+      phone: "+91 80 4567 8000",
+      address: "100, Brigade Tower, Brigade Road",
+      city: "Bengaluru",
+      state: "Karnataka",
+      postalCode: "560025",
+      gstin: "29XYZAB5678C1Z9",
+      accentColor: "blue",
+    },
+  })
+  const lab2 = await db.marketplaceLab.upsert({
+    where: { slug: "lifelab-diagnostics" },
+    update: {},
+    create: {
+      organizationId: org2.id,
+      slug: "lifelab-diagnostics",
+      displayName: "LifeLab Diagnostics",
+      description: "Premium diagnostic chain with 12 branches across Bengaluru. Specializing in preventive health checkups and corporate wellness.",
+      address: "100, Brigade Tower, Brigade Road",
+      city: "Bengaluru",
+      state: "Karnataka",
+      postalCode: "560025",
+      latitude: 12.9698,
+      longitude: 77.6499,
+      phone: "+91 80 4567 8000",
+      whatsapp: "+91 90000 11111",
+      email: "info@lifelab.example",
+      nablCertified: true,
+      nablCertNumber: "NABL-LL-2020-5678",
+      openTime: "07:00",
+      closeTime: "20:00",
+      homeCollection: true,
+      homeCollectionFee: 0,
+      homeCollectionRadius: 20,
+      parking: true,
+      wheelchairAccess: true,
+      verified: true,
+      featured: true,
+      rating: 4.4,
+      reviewCount: 2,
+    },
+  })
+
+  // Add a third demo lab
+  const org3 = await db.organization.upsert({
+    where: { code: "HEALTHPOINT" },
+    update: {},
+    create: {
+      name: "HealthPoint Labs",
+      code: "HEALTHPOINT",
+      email: "care@healthpoint.example",
+      phone: "+91 80 3333 4444",
+      address: "55, Indiranagar 100 Feet Road",
+      city: "Bengaluru",
+      state: "Karnataka",
+      postalCode: "560038",
+      accentColor: "violet",
+    },
+  })
+  const lab3 = await db.marketplaceLab.upsert({
+    where: { slug: "healthpoint-labs" },
+    update: {},
+    create: {
+      organizationId: org3.id,
+      slug: "healthpoint-labs",
+      displayName: "HealthPoint Labs",
+      description: "24x7 diagnostic center with home collection. Fast turnaround, digital reports, and affordable pricing.",
+      address: "55, Indiranagar 100 Feet Road",
+      city: "Bengaluru",
+      state: "Karnataka",
+      postalCode: "560038",
+      latitude: 12.9784,
+      longitude: 77.6408,
+      phone: "+91 80 3333 4444",
+      whatsapp: "+91 90000 22222",
+      email: "care@healthpoint.example",
+      nablCertified: false,
+      open24x7: true,
+      homeCollection: true,
+      homeCollectionFee: 75,
+      homeCollectionRadius: 12,
+      emergencyService: true,
+      verified: false,
+      rating: 4.2,
+      reviewCount: 1,
+    },
+  })
+
+  // ── Reviews for marketplace labs ──
+  const reviews = [
+    { labId: lab.id, patientName: "Rajesh Sharma", rating: 5, title: "Excellent service", comment: "Fast report delivery and very professional staff. The home collection was on time and painless." },
+    { labId: lab.id, patientName: "Lakshmi Iyer", rating: 4, title: "Good experience", comment: "Clean facility and quick results. Slightly expensive but worth it for the quality." },
+    { labId: lab.id, patientName: "Mohammed Khan", rating: 5, title: "Highly recommended", comment: "NABL certified and it shows. Reports were detailed and easy to understand." },
+    { labId: lab2.id, patientName: "Sunita Desai", rating: 4, title: "Reliable", comment: "Been using LifeLab for 2 years. Consistent quality across their branches." },
+    { labId: lab2.id, patientName: "Anand Nair", rating: 5, title: "Free home collection!", comment: "They offer free home collection which is amazing. Report came within 6 hours." },
+    { labId: lab3.id, patientName: "Geeta Pillai", rating: 4, title: "24x7 is a lifesaver", comment: "Needed tests at 2 AM and they were open. Slightly pricier but the convenience is worth it." },
+  ]
+  for (const r of reviews) {
+    await db.labReview.create({ data: r })
+  }
+
+  // ── Coupons ──
+  const coupons = [
+    { code: "WELCOME10", description: "10% off on first order", discountType: "PERCENT", discountValue: 10, maxDiscount: 200, minOrder: 500, validFrom: new Date(), active: true },
+    { code: "FLAT100", description: "₹100 off on orders above ₹1000", discountType: "FLAT", discountValue: 100, minOrder: 1000, validFrom: new Date(), active: true },
+    { code: "HEALTH20", description: "20% off on health packages", discountType: "PERCENT", discountValue: 20, maxDiscount: 500, minOrder: 1500, validFrom: new Date(), active: true },
+  ]
+  for (const c of coupons) {
+    await db.coupon.upsert({ where: { code: c.code }, update: {}, create: c })
+  }
+
   console.log("✅ Seed complete.")
   console.log(`   Org: ${org.name} (${org.id})`)
   console.log(`   Users: ${users.length} (owner@medicore.example, path@medicore.example, ...)`)
