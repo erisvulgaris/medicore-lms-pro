@@ -831,3 +831,51 @@ Task: Transform platform into enterprise-grade healthcare marketplace (Zomato fo
   - Lab owner dashboard (manage profile, services, pricing, orders, analytics)
   - Marketplace admin panel (commission, payouts, disputes, moderation)
   - Push notifications (PWA + FCM)
+
+---
+Task ID: 13
+Agent: main (Z.ai Code)
+Task: Build Lab Owner Dashboard + Marketplace Admin Panel + search API for the marketplace module.
+
+## Current Project Status
+- Enterprise marketplace module with feature flags, OpenStreetMap, cart, checkout built in Task 12.
+- 36 views, 53 API routes before this round. Lint clean.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### New Features Added
+
+1. **Lab Owner Dashboard** (`/api/marketplace/owner` + `lab-owner-dashboard-view.tsx`):
+   - API: returns the org's marketplace lab profile, marketplace orders, revenue analytics (total/monthly/net), review analytics (avg rating, distribution 5-1), 14-day revenue trend, status breakdown, recent orders with test details. PATCH endpoint for profile editing.
+   - View: 4 stat cards (Total Orders, Revenue, Platform Fee, Rating), 3 tabs (Overview/Orders/Reviews), revenue area chart (14-day), lab profile summary, order list with OTP/patient/tests, review list with rating distribution bars, edit profile dialog (display name, description, phone, WhatsApp, hours, home collection fee, parking/wheelchair/emergency toggles).
+   - Verified: lab=MediCore, 1 order, ₹418 revenue, 4.7★ rating.
+
+2. **Marketplace Admin Panel** (`/api/marketplace/admin` + `marketplace-admin-view.tsx`):
+   - API: super admin overview — all labs with order/review counts, all orders, all reviews, all coupons. Stats: totalLabs, activeLabs, verifiedLabs, totalOrders, totalRevenue (GMV), platformRevenue, totalReviews, reportedReviews, totalCoupons, statusBreakdown, top labs by orders.
+   - View: 4 stat cards (Total Labs, Total Orders, GMV, Reviews), 5 tabs (Overview/Labs/Orders/Reviews/Coupons), order status breakdown, top labs leaderboard, lab management list with verified/featured badges, order list, review moderation queue with reported flags, coupon grid.
+   - Verified: 3 labs, 1 order, ₹418 GMV, 6 reviews.
+
+3. **Marketplace Search API** (`/api/marketplace/search`):
+   - Autocomplete across labs + tests with trending searches when query < 2 chars.
+   - Maps tests to marketplace labs (shows lab name + slug for each test result).
+   - Verified: "cbc" → Complete Blood Count, Hematology, ₹350.
+
+### Verification Results
+- Owner API: 200, lab=MediCore, 1 order, ₹418, 4.7★ ✓
+- Admin API: 200, 3 labs, 1 order, ₹418 GMV, 6 reviews ✓
+- Search API: 200, "cbc" → 1 suggestion (Complete Blood Count ₹350) ✓
+- `bun run lint` → 0 errors ✓
+- 38 views, 56 API routes
+- Pushed to GitHub: https://github.com/erisvulgaris/medicore-lms-pro
+
+## Unresolved Issues / Risks / Next-Phase Recommendations
+- **4GB sandbox OOM**: heavy views still cause OOM during browser QA. APIs verified via curl.
+- **Online payments**: payment gateway stub remains (ONLINE disabled in UI). Needs Razorpay/Stripe.
+- **Search**: SQL LIKE-based; needs Elasticsearch/Meilisearch for production scale.
+- **Pickup logistics**: order model has fields ready; needs pickup agent app + route optimization.
+- **Next-phase candidates**:
+  - Pickup agent assignment + route planning view
+  - Payment gateway integration (Razorpay)
+  - Elasticsearch for full-text search with typo tolerance
+  - PWA + push notifications (FCM)
+  - CSV import/export for tests and pricing (bulk operations)
