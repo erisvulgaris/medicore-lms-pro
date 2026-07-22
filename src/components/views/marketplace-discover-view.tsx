@@ -23,6 +23,7 @@ export function MarketplaceDiscoverView() {
   const [openNow, setOpenNow] = useState(false)
   const [featuredOnly, setFeaturedOnly] = useState(false)
   const [showMap, setShowMap] = useState(false)
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -34,6 +35,13 @@ export function MarketplaceDiscoverView() {
       if (userLocation) { params.set("lat", String(userLocation.lat)); params.set("lng", String(userLocation.lng)); params.set("radius", "50") }
       return api.get<{ labs: any[]; cities: string[] }>(`/api/marketplace/labs?${params}`)
     },
+  })
+
+  // Search autocomplete
+  const { data: searchData } = useQuery({
+    queryKey: ["marketplace-search", q],
+    queryFn: () => api.get<{ suggestions: any[]; trending: string[] }>(`/api/marketplace/search?q=${encodeURIComponent(q)}`),
+    enabled: q.length >= 2 && showSearchDropdown,
   })
 
   const detectLocation = () => {
@@ -75,9 +83,40 @@ export function MarketplaceDiscoverView() {
               <Input
                 placeholder="Search by lab name, test, or area…"
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => { setQ(e.target.value); setShowSearchDropdown(true) }}
+                onFocus={() => setShowSearchDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
                 className="h-12 border-0 bg-white pl-11 text-base shadow-lg"
               />
+              {showSearchDropdown && q.length >= 2 && searchData && (
+                <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-lg border bg-white shadow-xl scrollbar-thin">
+                  {searchData.suggestions?.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-muted-foreground">No results found</p>
+                  ) : (
+                    searchData.suggestions?.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          if (s.type === "lab" && s.slug) window.location.href = `/?marketplace=lab&slug=${s.slug}`
+                          else if (s.labSlug) window.location.href = `/?marketplace=lab&slug=${s.labSlug}`
+                          else setQ(s.label)
+                          setShowSearchDropdown(false)
+                        }}
+                        className="flex w-full items-center gap-3 border-b px-4 py-2.5 text-left last:border-0 hover:bg-muted/50"
+                      >
+                        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold", s.type === "lab" ? "bg-blue-100 text-blue-600" : s.type === "test" ? "bg-emerald-100 text-emerald-600" : s.type === "profile" ? "bg-violet-100 text-violet-600" : "bg-amber-100 text-amber-600")}>
+                          {s.type === "lab" ? "🏥" : s.type === "test" ? "🔬" : s.type === "profile" ? "📋" : "📦"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{s.label}</p>
+                          <p className="truncate text-xs text-muted-foreground">{s.sublabel}{s.lab && ` · ${s.lab}`}</p>
+                        </div>
+                        {s.rating && <Badge variant="outline" className="text-[10px]">{s.rating}★</Badge>}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
             <Select value={city} onValueChange={setCity}>
               <SelectTrigger className="h-12 border-0 bg-white text-base shadow-lg sm:w-44">
