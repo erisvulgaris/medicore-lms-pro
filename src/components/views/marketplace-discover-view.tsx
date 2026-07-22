@@ -93,6 +93,28 @@ export function MarketplaceDiscoverView() {
               <Navigation className="mr-1.5 h-4 w-4" /> Near me
             </Button>
           </div>
+
+          {/* Category quick-links */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              { label: "Full Body Checkup", q: "Full Body", icon: "🏥" },
+              { label: "Diabetes", q: "Diabetes", icon: "🩸" },
+              { label: "Thyroid", q: "Thyroid", icon: "🦋" },
+              { label: "Heart Care", q: "Heart", icon: "❤️" },
+              { label: "Women's Health", q: "Women", icon: "👩" },
+              { label: "Vitamin D", q: "Vitamin D", icon: "☀️" },
+              { label: "CBC", q: "CBC", icon: "🔬" },
+              { label: "Lipid Profile", q: "Lipid", icon: "🧪" },
+            ].map((cat) => (
+              <button
+                key={cat.label}
+                onClick={() => setQ(cat.q)}
+                className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur transition-colors hover:bg-white/25"
+              >
+                <span>{cat.icon}</span> {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
