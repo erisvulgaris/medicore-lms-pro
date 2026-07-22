@@ -1032,3 +1032,24 @@ Task: Rebuild marketplace UI to 10/10 quality (lab detail, cart/checkout, orders
   - PWA + push notifications
   - Marketplace analytics dashboards (GMV, conversion, retention)
   - Lab owner order management (accept/reject, status updates)
+
+---
+Task ID: 16
+Agent: main (Z.ai Code) — continuous improvement loop iteration 2
+Task: Add lab owner order management (status updates) + search autocomplete.
+
+## Completed This Iteration
+- PATCH /api/marketplace/owner/orders/[id]: lab owners can update marketplace order status (full lifecycle PLACED→DELIVERED or CANCELLED), audit-logged
+- Lab owner dashboard: status update buttons on each order card showing valid next statuses
+- Search autocomplete dropdown in discover (live results with type icons, click to navigate)
+- Category quick-links in discover hero (8 health categories)
+- Enhanced search API: searches labs + tests + profiles + packages
+- Verified: order MP-10013 status updated PLACED→ASSIGNED via API
+- 38 views, 57 API routes, lint clean
+- Pushed to GitHub (2 commits)
+
+## Next Iterations
+- Pickup agent dashboard + route planning
+- Payment gateway integration (Razorpay)
+- Marketplace analytics (GMV, conversion, retention dashboards)
+- PWA + push notifications

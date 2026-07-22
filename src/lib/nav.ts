@@ -2,7 +2,7 @@ import type { Permission } from "@/lib/permissions"
 import {
   LayoutDashboard, Users, FlaskConical, CalendarClock, ClipboardList, TestTube2,
   Microscope, FileText, Receipt, Package, ShoppingCart, Stethoscope, Settings,
-  ScrollText, Gauge, TrendingUp, MapPin, Printer, UserCircle, Zap, Store, ShieldCheck, type LucideIcon,
+  ScrollText, Gauge, TrendingUp, MapPin, Printer, UserCircle, Zap, Store, ShieldCheck, Navigation, type LucideIcon,
 } from "lucide-react"
 
 export interface NavItem {
@@ -19,6 +19,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "analytics", label: "Lab Analytics", icon: Gauge, permission: "dashboard.view", group: "Overview" },
   { key: "technicians", label: "Technician Productivity", icon: Microscope, permission: "dashboard.view", group: "Overview" },
   { key: "lab-owner", label: "Lab Owner Dashboard", icon: Store, permission: "dashboard.view", group: "Overview" },
+  { key: "pickup", label: "Pickup Dashboard", icon: Navigation, permission: "dashboard.view", group: "Overview" },
   { key: "marketplace-admin", label: "Marketplace Admin", icon: ShieldCheck, permission: "settings.manage", group: "Overview" },
   { key: "patients", label: "Patients", icon: Users, permission: "patients.read", group: "Clinical" },
   { key: "patient-portal", label: "Patient Portal", icon: UserCircle, permission: "patients.read", group: "Clinical" },
