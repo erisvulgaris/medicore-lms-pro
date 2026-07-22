@@ -38,6 +38,12 @@ export function LabOwnerDashboardView() {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const updateStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/api/marketplace/owner/orders/${id}`, { status }),
+    onSuccess: () => { toast.success("Order status updated"); qc.invalidateQueries({ queryKey: ["marketplace-owner"] }) },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   if (isLoading) return <div className="flex items-center justify-center py-24"><Loader2 className="h-8 w-8 animate-spin" /></div>
   if (!data) return null
 
@@ -129,23 +135,36 @@ export function LabOwnerDashboardView() {
             <ScrollArea className="max-h-[65vh]">
               <div className="divide-y">
                 {data.recentOrders.map((o: any) => (
-                  <div key={o.id} className="flex items-start gap-3 p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Package className="h-5 w-5" /></div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-mono text-sm font-semibold">{o.orderCode}</p>
-                        <Badge variant="outline" className={cn("text-[10px]", o.status === "COMPLETED" || o.status === "DELIVERED" ? "border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400" : o.status === "CANCELLED" ? "border-rose-300 text-rose-700 dark:border-rose-800 dark:text-rose-400" : "border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-400")}>{o.status}</Badge>
-                        {o.homeCollection && <Badge variant="secondary" className="text-[10px]"><MapPin className="h-2.5 w-2.5" /> Home</Badge>}
+                  <div key={o.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Package className="h-5 w-5" /></div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono text-sm font-semibold">{o.orderCode}</p>
+                          <Badge variant="outline" className={cn("text-[10px]", o.status === "COMPLETED" || o.status === "DELIVERED" ? "border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400" : o.status === "CANCELLED" ? "border-rose-300 text-rose-700 dark:border-rose-800 dark:text-rose-400" : "border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-400")}>{o.status}</Badge>
+                          {o.homeCollection && <Badge variant="secondary" className="text-[10px]"><MapPin className="h-2.5 w-2.5" /> Home</Badge>}
+                        </div>
+                        <p className="mt-0.5 text-sm font-medium">{o.patientName} · {o.patientPhone}</p>
+                        <p className="text-xs text-muted-foreground">{o.tests.map((t: any) => t.testName).join(", ")}</p>
+                        <p className="text-xs text-muted-foreground">{formatDateTime(o.createdAt)}</p>
+                        {o.pickupOtp && <p className="mt-1 text-xs"><span className="text-amber-600">Pickup OTP: </span><span className="font-mono font-bold text-amber-600">{o.pickupOtp}</span></p>}
                       </div>
-                      <p className="mt-0.5 text-sm font-medium">{o.patientName} · {o.patientPhone}</p>
-                      <p className="text-xs text-muted-foreground">{o.tests.map((t: any) => t.testName).join(", ")}</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(o.createdAt)}</p>
-                      {o.pickupOtp && <p className="mt-1 text-xs"><span className="text-amber-600">Pickup OTP: </span><span className="font-mono font-bold text-amber-600">{o.pickupOtp}</span></p>}
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{formatCurrency(o.totalAmount)}</p>
+                        <Badge variant="outline" className="text-[10px]">{o.paymentMode}</Badge>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold">{formatCurrency(o.totalAmount)}</p>
-                      <Badge variant="outline" className="text-[10px]">{o.paymentMode}</Badge>
-                    </div>
+                    {/* Status update buttons */}
+                    {o.status !== "DELIVERED" && o.status !== "CANCELLED" && (
+                      <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-2">
+                        <span className="self-center text-[10px] text-muted-foreground">Update status:</span>
+                        {nextStatuses(o.status).map((ns) => (
+                          <Button key={ns} size="sm" variant="outline" className="h-6 text-[10px]" disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ id: o.id, status: ns })}>
+                            {ns === "CANCELLED" ? "❌ Cancel" : `→ ${ns}`}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -269,4 +288,18 @@ function EditLabDialog({ open, onOpenChange, lab, onSave, saving }: { open: bool
       </DialogContent>
     </Dialog>
   )
+}
+
+function nextStatuses(current: string): string[] {
+  const flow: Record<string, string[]> = {
+    PLACED: ["ASSIGNED", "CANCELLED"],
+    ASSIGNED: ["COLLECTED", "CANCELLED"],
+    COLLECTED: ["IN_LAB"],
+    IN_LAB: ["TESTING"],
+    TESTING: ["COMPLETED"],
+    COMPLETED: ["DELIVERED"],
+    DELIVERED: [],
+    CANCELLED: [],
+  }
+  return flow[current] || []
 }

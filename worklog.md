@@ -953,3 +953,82 @@ Task: Massive marketplace overhaul — rich seed data, fix hardcoded ratings, re
   - Pickup agent dashboard + route planning
   - Payment gateway integration (Razorpay)
   - Elasticsearch/Meilisearch for search
+
+---
+Task ID: 15
+Agent: main (Z.ai Code) — continuous improvement loop iteration 1
+Task: Rebuild marketplace UI to 10/10 quality (lab detail, cart/checkout, orders, search).
+
+## Current Project Status
+- Marketplace has 15 labs, 123 reviews, 25 orders, 162 tests, 5 coupons (rich seed from Task 14).
+- Discover UI was rebuilt to Zomato-grade in Task 14.
+- Lab detail, cart, orders UI were still basic — this iteration rebuilds them.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### Completed This Iteration
+
+1. **Lab Detail UI Rebuild (Practo-grade)**:
+   - Hero cover with share/wishlist buttons
+   - Lab header with verified/featured/NABL badges + color-coded rating pill
+   - Quick info cards (home collection, hours, NABL, contact)
+   - Contact section (phone, WhatsApp, email, website links)
+   - Facilities chips (parking, wheelchair, emergency, home collection, 24×7, NABL)
+   - OpenStreetMap with directions button
+   - 4 tabs: Tests (with search), Profiles, Packages (with discount %), Reviews (with distribution bars)
+   - Add-to-cart buttons, review dialog with star picker
+
+2. **Cart/Checkout UI Rebuild (premium)**:
+   - 3-step wizard (cart → checkout → confirm) with step indicator
+   - Cart items with remove, lab info card
+   - Patient details form (name, phone, age, gender, email)
+   - Address form (address, city, PIN)
+   - Slot picker (date + 6 time slots)
+   - Home collection toggle
+   - Payment mode radio (COD recommended / Online coming soon)
+   - Sticky order summary with coupon input + platform fee breakdown
+   - Order confirmation screen with details
+
+3. **Orders UI Rebuild (premium)**:
+   - 7-step live status timeline with icons (PLACED → ASSIGNED → COLLECTED → IN_LAB → TESTING → COMPLETED → DELIVERED)
+   - Order header with status badge, code, timestamp
+   - Lab info with view-lab button
+   - Tests list with badges
+   - Patient/phone/collection/preferred info grid
+   - Pickup OTP display
+   - Total amount
+
+4. **Enhanced Search API**:
+   - Searches labs + tests + profiles + packages
+   - Maps results to marketplace labs (shows lab name)
+   - Trending searches when query < 2 chars
+   - Returns suggestions with type, label, sublabel, price, lab info
+
+5. **Search Autocomplete Dropdown**:
+   - Live dropdown in discover search bar
+   - Type icons (🏥 lab, 🔬 test, 📋 profile, 📦 package)
+   - Click navigates to lab detail or fills search
+   - Rating badges on lab suggestions
+
+6. **Category Quick-Links**:
+   - 8 categories in hero: Full Body Checkup, Diabetes, Thyroid, Heart Care, Women's Health, Vitamin D, CBC, Lipid Profile
+   - Click sets search query
+
+### Verification Results
+- Lab detail API: 22 tests, 4 profiles, 5 packages, 10 reviews ✓
+- Search API: "thyroid" → 12 suggestions (lab + tests with lab names) ✓
+- Browser: lab detail renders with tabs, map, facilities ✓
+- Browser: discover renders with categories + search dropdown ✓
+- `bun run lint` → 0 errors ✓
+- 38 views, 56 API routes
+- Pushed to GitHub (3 commits)
+
+## Unresolved Issues / Next-Phase Recommendations
+- **4GB sandbox OOM**: still limits browser QA to 1-2 heavy views per session
+- **Online payments**: still a stub (ONLINE disabled)
+- **Next iterations**:
+  - Pickup agent dashboard + route planning
+  - Payment gateway integration (Razorpay)
+  - PWA + push notifications
+  - Marketplace analytics dashboards (GMV, conversion, retention)
+  - Lab owner order management (accept/reject, status updates)
