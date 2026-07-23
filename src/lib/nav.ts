@@ -21,6 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "lab-owner", label: "Lab Owner Dashboard", icon: Store, permission: "dashboard.view", group: "Overview" },
   { key: "pickup", label: "Pickup Dashboard", icon: Navigation, permission: "dashboard.view", group: "Overview" },
   { key: "marketplace-admin", label: "Marketplace Admin", icon: ShieldCheck, permission: "settings.manage", group: "Overview" },
+  { key: "marketplace-analytics", label: "Marketplace Analytics", icon: TrendingUp, permission: "settings.manage", group: "Overview" },
   { key: "patients", label: "Patients", icon: Users, permission: "patients.read", group: "Clinical" },
   { key: "patient-portal", label: "Patient Portal", icon: UserCircle, permission: "patients.read", group: "Clinical" },
   { key: "appointments", label: "Appointments", icon: CalendarClock, permission: "appointments.read", group: "Clinical" },

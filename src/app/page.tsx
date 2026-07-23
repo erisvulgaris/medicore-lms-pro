@@ -45,6 +45,7 @@ const FeatureFlagsView = dynamic(() => import("@/components/views/feature-flags-
 const LabOwnerDashboardView = dynamic(() => import("@/components/views/lab-owner-dashboard-view").then(m => ({ default: m.LabOwnerDashboardView })), { ssr: false })
 const PickupDashboardView = dynamic(() => import("@/components/views/pickup-dashboard-view").then(m => ({ default: m.PickupDashboardView })), { ssr: false })
 const MarketplaceAdminView = dynamic(() => import("@/components/views/marketplace-admin-view").then(m => ({ default: m.MarketplaceAdminView })), { ssr: false })
+const MarketplaceAnalyticsView = dynamic(() => import("@/components/views/marketplace-analytics-view").then(m => ({ default: m.MarketplaceAnalyticsView })), { ssr: false })
 
 function Loading() {
   return (
@@ -114,6 +115,7 @@ function ViewRouter({ view }: { view: string }) {
     case "lab-owner": return <LabOwnerDashboardView />
     case "pickup": return <PickupDashboardView />
     case "marketplace-admin": return <MarketplaceAdminView />
+    case "marketplace-analytics": return <MarketplaceAnalyticsView />
     case "finance": return <FinanceView />
     case "commissions": return <CommissionsView />
     case "home-collection": return <HomeCollectionView />
