@@ -15,7 +15,7 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts"
 import {
-  IndianRupee, Users, ClipboardList, TestTube2, AlertTriangle, FileCheck2, Home, Wallet, PackageX, TrendingUp, Activity, ArrowRight,
+  IndianRupee, Users, ClipboardList, TestTube2, AlertTriangle, FileCheck2, Home, Wallet, PackageX, TrendingUp, Activity, ArrowRight, Store,
 } from "lucide-react"
 
 const PIE_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#06b6d4", "#ec4899", "#14b8a6", "#64748b"]
@@ -233,6 +233,37 @@ export function DashboardView() {
           )}
         </Card>
       </div>
+
+      {/* Marketplace widget */}
+      {data.marketplace && (
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600/10 to-teal-600/10 px-5 py-3">
+            <h3 className="flex items-center gap-2 font-semibold"><Store className="h-4 w-4 text-primary" /> Marketplace — {data.marketplace.labName}</h3>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("lab-owner")}>Manage <ArrowRight className="ml-1 h-3 w-3" /></Button>
+          </div>
+          <div className="grid grid-cols-2 gap-4 p-5 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">GMV (30d)</p>
+              <p className="text-xl font-bold text-emerald-600">{formatCurrency(data.marketplace.gmv)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Orders</p>
+              <p className="text-xl font-bold">{data.marketplace.totalOrders}</p>
+              <p className="text-[10px] text-muted-foreground">{data.marketplace.pendingOrders} pending · {data.marketplace.completedOrders} done</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Rating</p>
+              <p className="text-xl font-bold">{data.marketplace.rating}★</p>
+              <p className="text-[10px] text-muted-foreground">{data.marketplace.reviewCount} reviews</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Net Revenue</p>
+              <p className="text-xl font-bold">{formatCurrency(data.marketplace.netRevenue)}</p>
+              <p className="text-[10px] text-muted-foreground">after {formatCurrency(data.marketplace.platformFee)} fee</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Recent activity */}
       <SectionCard title="Activity Feed" description="Latest actions across the laboratory">

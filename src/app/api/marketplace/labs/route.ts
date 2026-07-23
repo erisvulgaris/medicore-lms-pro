@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     const openNow = searchParams.get("openNow") === "true"
     const featuredOnly = searchParams.get("featured") === "true"
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200)
+    const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0)
 
     const where: any = { active: true }
     if (q) {
@@ -39,10 +40,11 @@ export async function GET(req: NextRequest) {
     let labs = await db.marketplaceLab.findMany({
       where,
       include: {
-        reviews: { select: { rating: true }, take: 500 },
+        reviews: { select: { rating: true }, take: 200 },
         _count: { select: { marketplaceOrders: true } },
       },
       take: limit,
+      skip: offset,
     })
 
     // Compute distance if lat/lng provided

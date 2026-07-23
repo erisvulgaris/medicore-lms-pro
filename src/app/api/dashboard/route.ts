@@ -160,6 +160,32 @@ export async function GET(req: NextRequest) {
       else agingBuckets.critical++
     }
 
+    // ── Marketplace stats (if lab exists for this org) ──
+    let marketplaceStats = null
+    const mpLab = await db.marketplaceLab.findUnique({ where: { organizationId: orgId } })
+    if (mpLab) {
+      const mpOrders = await db.marketplaceOrder.findMany({
+        where: { labId: mpLab.id, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+        select: { totalAmount: true, status: true, platformFee: true, homeCollection: true, createdAt: true },
+      })
+      const mpGMV = mpOrders.reduce((s, o) => s + o.totalAmount, 0)
+      const mpPlatformFee = mpOrders.reduce((s, o) => s + o.platformFee, 0)
+      const mpPending = mpOrders.filter((o) => ["PLACED", "ASSIGNED", "COLLECTED", "IN_LAB", "TESTING"].includes(o.status)).length
+      const mpCompleted = mpOrders.filter((o) => ["COMPLETED", "DELIVERED"].includes(o.status)).length
+      marketplaceStats = {
+        labName: mpLab.displayName,
+        labSlug: mpLab.slug,
+        rating: mpLab.rating,
+        reviewCount: mpLab.reviewCount,
+        gmv: mpGMV,
+        platformFee: mpPlatformFee,
+        netRevenue: mpGMV - mpPlatformFee,
+        pendingOrders: mpPending,
+        completedOrders: mpCompleted,
+        totalOrders: mpOrders.length,
+      }
+    }
+
     return Response.json({
       canViewFinance: hasPermission(user.role, "finance.view"),
       stats: {
@@ -183,6 +209,7 @@ export async function GET(req: NextRequest) {
         tatCompliant,
         overdueSamples,
       },
+      marketplace: marketplaceStats,
       sampleAging: { total: activeSamples.length, buckets: agingBuckets },
       trend: days,
       statusDistribution: statusCounts.map((s) => ({ status: s.status, count: s._count })),
